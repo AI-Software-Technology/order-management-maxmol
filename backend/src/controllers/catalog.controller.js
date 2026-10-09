@@ -1,0 +1,126 @@
+// Brands, Categories & Products
+const { Brand, Category, Product, Order, OrderItem } = require('../models');
+const { logActivity } = require('../utils/audit');
+const { toId, like, uniq } = require('../utils/helpers');
+
+// ----------------------------- BRANDS & CATEGORIES -----------------------------
+const masterHandlers = (Model, label, key) => ({
+  list: async (_req, res) => {
+    const rows = await Model.rows({}, { sort: { name: 1 } });
+    res.json({ [key]: rows });
+  },
+  create: async (req, res) => {
+    const { name, description } = req.body;
+    if (!name) return res.status(400).json({ error: `${label} name is required` });
+    if (await Model.exists({ name })) return res.status(400).json({ error: `${label} already exists` });
+
+    const row = await Model.insert({ name, description: description || '' });
+    await logActivity(req.user.id, `${label.toUpperCase()}_CREATED`, label.toLowerCase(), row.id, `Created ${label.toLowerCase()} ${name}`);
+    res.json({ id: row.id, message: `${label} added successfully` });
+  },
+  update: async (req, res) => {
+    const { name, description, status } = req.body;
+    await Model.updateOne({ id: toId(req.params.id) }, { $set: { name, description, status: status || 'active' } });
+    res.json({ message: `${label} updated` });
+  },
+});
+
+exports.brands = masterHandlers(Brand, 'Brand', 'brands');
+exports.categories = masterHandlers(Category, 'Category', 'categories');
+
+// ----------------------------- PRODUCTS -----------------------------
+exports.listProducts = async (req, res) => {
+  const { category_id, brand_id, search } = req.query;
+  const [brands, categories] = await Promise.all([
+    Brand.rows({}, { select: 'id name' }),
+    Category.rows({}, { select: 'id name' }),
+  ]);
+  const brandMap = new Map(brands.map((b) => [b.id, b.name]));
+  const catMap = new Map(categories.map((c) => [c.id, c.name]));
+
+  const filter = {};
+  if (category_id) filter.category_id = Number(category_id);
+  if (brand_id) filter.brand_id = Number(brand_id);
+  if (search) {
+    const rx = like(search);
+    filter.$or = [
+      { name: rx },
+      { sku: rx },
+      { item_colour: rx },
+      { brand_id: { $in: brands.filter((b) => rx.test(b.name)).map((b) => b.id) } },
+      { category_id: { $in: categories.filter((c) => rx.test(c.name)).map((c) => c.id) } },
+    ];
+  }
+
+  const rows = await Product.rows(filter, { sort: { name: 1 } });
+  const products = rows
+    .filter((p) => brandMap.has(p.brand_id) && catMap.has(p.category_id))
+    .map((p) => ({ ...p, brand_name: brandMap.get(p.brand_id), category_name: catMap.get(p.category_id) }));
+  res.json({ products });
+};
+
+// Last rate at which this party bought this product
+exports.vendorLastRate = async (req, res) => {
+  const vendorId = toId(req.query.vendor_id);
+  const productId = toId(req.query.product_id);
+  if (!vendorId || !productId) return res.json({ lastRate: null });
+
+  const items = await OrderItem.rows({ product_id: productId }, { select: 'order_id rate' });
+  if (!items.length) return res.json({ lastRate: null });
+
+  const order = await Order.row(
+    { id: { $in: uniq(items.map((i) => i.order_id)) }, vendor_id: vendorId, order_status: { $ne: 'CANCELLED' } },
+    { select: 'id order_number created_at', sort: { id: -1 } }
+  );
+  if (!order) return res.json({ lastRate: null });
+
+  const item = items.find((i) => i.order_id === order.id);
+  res.json({ lastRate: item ? item.rate : null, lastOrder: order.order_number, date: order.created_at });
+};
+
+exports.createProduct = async (req, res) => {
+  const { name, brand_id, category_id, sku, unit, min_order_qty, standard_rate, description, image_url, item_colour, status } = req.body;
+  const cleanUnit = (unit || '').toString().trim();
+  if (!name || !brand_id || !category_id || !sku || !cleanUnit) {
+    return res.status(400).json({ error: 'Name, Brand, Category, SKU and Packing Unit are required' });
+  }
+  if (await Product.exists({ sku })) {
+    return res.status(400).json({ error: `A product with SKU "${sku}" already exists` });
+  }
+
+  const product = await Product.insert({
+    name, brand_id: Number(brand_id), category_id: Number(category_id), sku, unit: cleanUnit,
+    min_order_qty: Number(min_order_qty) || 1, standard_rate: Number(standard_rate) || 0,
+    description: description || '', image_url: image_url || '',
+    item_colour: item_colour || 'Golden Yellow', status: status || 'active',
+  });
+
+  await logActivity(req.user.id, 'PRODUCT_CREATED', 'product', sku, `Added new product ${name} (${sku}) with packing unit ${cleanUnit}`);
+  res.json({ id: product.id, message: 'Product created successfully' });
+};
+
+exports.updateProduct = async (req, res) => {
+  const id = toId(req.params.id);
+  const { name, brand_id, category_id, sku, unit, min_order_qty, standard_rate, description, image_url, item_colour, status } = req.body;
+  const cleanUnit = (unit || '').toString().trim();
+  if (!cleanUnit) return res.status(400).json({ error: 'Packing Unit is required' });
+
+  if (sku && (await Product.exists({ sku, id: { $ne: id } }))) {
+    return res.status(400).json({ error: `A product with SKU "${sku}" already exists` });
+  }
+
+  await Product.updateOne(
+    { id },
+    {
+      $set: {
+        name, brand_id: Number(brand_id), category_id: Number(category_id), sku, unit: cleanUnit,
+        min_order_qty: min_order_qty === undefined || min_order_qty === null || min_order_qty === '' ? null : Number(min_order_qty),
+        standard_rate: standard_rate === undefined || standard_rate === null || standard_rate === '' ? null : Number(standard_rate),
+        description, image_url, item_colour: item_colour || 'Golden Yellow', status: status || 'active',
+      },
+    }
+  );
+
+  await logActivity(req.user.id, 'PRODUCT_UPDATED', 'product', req.params.id, `Updated product specs for ${sku} (Packing Unit: ${cleanUnit})`);
+  res.json({ message: 'Product updated successfully' });
+};

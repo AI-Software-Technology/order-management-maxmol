@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "@fontsource-variable/schibsted-grotesk";
+
+/* Login screen identity: deep petrol + oil amber. The rest of the app keeps its slate/amber look. */
+@theme {
+  --font-display: "Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-oil-950: #0d1c23;
+  --color-oil-900: #12262f;
+  --color-oil-800: #1a3440;
+  --color-oil-700: #284856;
+  --color-paper: #f2f4f5;
+}
