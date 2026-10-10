@@ -20,7 +20,8 @@ npm run dev                 # http://localhost:5000
 - `npm run migrate:sqlite -- /path/to/data/lubricant_erp.db --force` — import your OLD SQLite data
   (same ids, order numbers, payments). Needs Node 22.5+ (or `npm i better-sqlite3`).
 
-Demo logins: `superadmin@lubricantdemo.com / Admin@123`, `admin@… / Admin@123`,
+Demo logins:
+ `superadmin@lubricantdemo.com / Admin@123`, `admin@… / Admin@123`,
 `accounts@… / Accounts@123`, `akash@… / Sales@123`, `production@… / Production@123`,
 `dispatch@… / Dispatch@123`.
 
