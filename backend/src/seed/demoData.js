@@ -5,8 +5,7 @@ const roles = [
   { name: 'Admin', slug: 'admin', description: 'Operations manager, order approval, assignments, vendor oversight', is_system: 1 },
   { name: 'Accounts', slug: 'accounts', description: 'Financial ledger, payment verification, invoicing and outstanding collections', is_system: 1 },
   { name: 'Sales Person', slug: 'sales_person', description: 'Client acquisition, order creation, order tracking for owned portfolio', is_system: 1 },
-  { name: 'Production Team', slug: 'production_team', description: 'Shop-floor manufacturing, batch formulation, produced quantity logging', is_system: 1 },
-  { name: 'Dispatch Team', slug: 'dispatch_team', description: 'Logistics, transport assignment, LR generation, out for delivery tracking', is_system: 1 }
+  { name: 'Production Team', slug: 'production_team', description: 'Shop-floor manufacturing, batch formulation, produced quantity logging', is_system: 1 }
 ];
 
 // Base permission catalogue ( the full matrix is completed by ensurePermissions() )
@@ -61,7 +60,6 @@ const rolePermissions = {
   accounts: ['orders:view_all', 'payments:view', 'payments:add', 'payments:verify', 'reports:view', 'vendors:view_all'],
   sales_person: ['orders:view_own', 'orders:create', 'orders:edit', 'vendors:view_own', 'vendors:create', 'payments:add'],
   production_team: ['production:view', 'production:update', 'production:complete'],
-  dispatch_team: ['dispatch:view', 'dispatch:create', 'dispatch:update_delivery'],
 };
 
 // Demo users ( password is the plain demo password, hashed while seeding )
@@ -73,7 +71,6 @@ const users = [
   { name: 'Rahul Sharma', email: 'rahul@lubricantdemo.com', password: 'Sales@123', role: 'sales_person', mobile: '+91 98200 55005', employee_id: 'EMP-005' },
   { name: 'Deepak Sharma', email: 'deepak@lubricantdemo.com', password: 'Sales@123', role: 'sales_person', mobile: '+91 98200 66006', employee_id: 'EMP-006' },
   { name: 'Vikram Patel', email: 'production@lubricantdemo.com', password: 'Production@123', role: 'production_team', mobile: '+91 98200 77007', employee_id: 'EMP-007' },
-  { name: 'Sunil Sharma', email: 'dispatch@lubricantdemo.com', password: 'Dispatch@123', role: 'dispatch_team', mobile: '+91 98200 88008', employee_id: 'EMP-008' },
   { name: 'Anjali Gupta', email: 'accounts2@lubricantdemo.com', password: 'Accounts@123', role: 'accounts', mobile: '+91 98200 99009', employee_id: 'EMP-009' },
   { name: 'Manoj Tiwari', email: 'production2@lubricantdemo.com', password: 'Production@123', role: 'production_team', mobile: '+91 98200 12345', employee_id: 'EMP-010' },
 ];

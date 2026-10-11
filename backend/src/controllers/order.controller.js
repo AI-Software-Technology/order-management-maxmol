@@ -1,6 +1,6 @@
 const {
   Order, OrderItem, Vendor, User, Role, Company, Product, ProductionRecord, Dispatch, Delivery,
-  Payment, OrderStatusHistory, ActivityLog,
+  Payment, OrderStatusHistory, ActivityLog, Notification,
 } = require('../models');
 const { logActivity, sendNotification, addHistory } = require('../utils/audit');
 const { toId, like, nowStr, round2, addDateRange, sumBy, uniq, inr } = require('../utils/helpers');
@@ -303,7 +303,7 @@ exports.getOne = async (req, res) => {
     .filter((i) => products.has(i.product_id))
     .map((i) => {
       const p = products.get(i.product_id);
-      return { ...i, product_image: p.image_url, item_colour: p.item_colour, brand_name: p.brand_name, category_name: p.category_name };
+      return { ...i, product_image: p.image_url, item_colour: (i.item_colour && i.item_colour !== 'Golden Yellow') ? i.item_colour : (p.item_colour || ''), brand_name: p.brand_name, category_name: p.category_name };
     });
 
   res.json({
@@ -344,6 +344,9 @@ exports.create = async (req, res) => {
 
   const vendor = await Vendor.row({ id: toId(vendor_id) });
   if (!vendor) return res.status(404).json({ error: 'Selected vendor does not exist' });
+  if (vendor.status === 'inactive') {
+    return res.status(400).json({ error: 'This party is inactive. Activate the party before creating an order.' });
+  }
   if (user.role_slug === 'sales_person' && vendor.assigned_sales_person_id !== user.id) {
     return res.status(403).json({ error: 'Unauthorized: You can only create orders for your assigned vendors' });
   }
@@ -407,6 +410,7 @@ exports.create = async (req, res) => {
       rate: Number(it.rate),
       line_amount: Number(it.quantity) * Number(it.rate),
       notes: it.notes || null,
+      item_colour: (it.item_colour && String(it.item_colour).trim()) || prod.item_colour || '',
       item_availability: 'AVAILABLE',
     });
   }
@@ -459,6 +463,13 @@ exports.update = async (req, res) => {
 
   const targetCompanyId = company_id ? Number(company_id) : order.company_id;
   const targetVendorId = vendor_id ? Number(vendor_id) : order.vendor_id;
+  if (targetVendorId !== order.vendor_id) {
+    const newParty = await Vendor.row({ id: targetVendorId });
+    if (!newParty) return res.status(404).json({ error: 'Selected party does not exist' });
+    if (newParty.status === 'inactive') {
+      return res.status(400).json({ error: 'This party is inactive. Activate the party before using it on an order.' });
+    }
+  }
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'At least one product item is required.' });
@@ -523,7 +534,7 @@ exports.update = async (req, res) => {
       rate: Number(it.rate),
       line_amount: round2(Number(it.quantity) * Number(it.rate)),
       notes: it.notes || null,
-      item_colour: it.item_colour || prod?.item_colour || 'Golden Yellow',
+      item_colour: it.item_colour || prod?.item_colour || '',
       item_availability: 'AVAILABLE',
     });
   }
@@ -580,6 +591,40 @@ exports.cancel = async (req, res) => {
   await sendNotification(order.sales_person_id, null, 'Order Cancelled', `Order ${order.order_number} was cancelled. Reason: ${reason}`, 'error', order.id);
 
   res.json({ message: 'Order has been cancelled' });
+};
+
+// DELETE /api/orders/:id  - permanently removes an order and everything attached to it.
+// Only NEW or CANCELLED orders, and only when no payment was recorded (money records must never vanish).
+exports.remove = async (req, res) => {
+  const user = req.user;
+  const order = await findOrder(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  if (!['NEW', 'CANCELLED'].includes(order.order_status)) {
+    return res.status(400).json({
+      error: `Order ${order.order_number} is ${order.order_status}. Cancel it first - only New or Cancelled orders can be deleted.`,
+    });
+  }
+  const payments = await Payment.countDocuments({ order_id: order.id });
+  if (payments > 0) {
+    return res.status(400).json({
+      error: `Order ${order.order_number} has ${payments} payment record(s). Payments must be kept, so this order cannot be deleted.`,
+    });
+  }
+
+  const oid = order.id;
+  await Promise.all([
+    OrderItem.deleteMany({ order_id: oid }),
+    OrderStatusHistory.deleteMany({ order_id: oid }),
+    ProductionRecord.deleteMany({ order_id: oid }),
+    Dispatch.deleteMany({ order_id: oid }),
+    Delivery.deleteMany({ order_id: oid }),
+    Notification.deleteMany({ order_id: oid }),
+  ]);
+  await Order.deleteOne({ id: oid });
+
+  await logActivity(user.id, 'ORDER_DELETED', 'order', order.order_number, `${user.name} deleted order ${order.order_number} (${order.order_status})`);
+  res.json({ message: `Order ${order.order_number} deleted` });
 };
 
 exports.assignProduction = async (req, res) => {

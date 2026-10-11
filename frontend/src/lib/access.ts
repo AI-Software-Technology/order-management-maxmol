@@ -35,9 +35,7 @@ export const ROUTE_RULES: Record<string, RouteRule> = {
   'companies':         { label: 'Billing Companies',    allow: anyPerm('companies:manage') },
   'users':             { label: 'User Management',      allow: anyPerm('users:manage') },
   'roles':             { label: 'Roles & Permissions',  allow: anyPerm('roles:manage') },
-  'activity-logs':     { label: 'Audit Logs',           allow: anyPerm('activity:view') },
-  // Contains "reset demo database" - admins only
-  'settings':          { label: 'System Settings',      allow: anyRole('admin') }
+  'activity-logs':     { label: 'Audit Logs',           allow: anyPerm('activity:view') }
 };
 
 export function canAccess(user: User | null, has: Has, routeId: string): boolean {

@@ -1,5 +1,6 @@
 // Brands, Categories & Products
 const { Brand, Category, Product, Order, OrderItem } = require('../models');
+const FIELD_FOR = { Brand: 'brand_id', Category: 'category_id' };
 const { logActivity } = require('../utils/audit');
 const { toId, like, uniq } = require('../utils/helpers');
 
@@ -22,6 +23,22 @@ const masterHandlers = (Model, label, key) => ({
     const { name, description, status } = req.body;
     await Model.updateOne({ id: toId(req.params.id) }, { $set: { name, description, status: status || 'active' } });
     res.json({ message: `${label} updated` });
+  },
+  // Delete only when no product uses it (otherwise those products would lose their brand / category)
+  remove: async (req, res) => {
+    const id = toId(req.params.id);
+    const row = id === null ? null : await Model.row({ id });
+    if (!row) return res.status(404).json({ error: `${label} not found` });
+
+    const inUse = await Product.countDocuments({ [FIELD_FOR[label]]: id });
+    if (inUse > 0) {
+      return res.status(400).json({
+        error: `Cannot delete ${label.toLowerCase()} "${row.name}": ${inUse} product(s) use it. Move or delete those products first, or mark it Inactive.`,
+      });
+    }
+    await Model.deleteOne({ id });
+    await logActivity(req.user.id, `${label.toUpperCase()}_DELETED`, label.toLowerCase(), id, `Deleted ${label.toLowerCase()} ${row.name}`);
+    res.json({ message: `${label} deleted` });
   },
 });
 
@@ -123,4 +140,21 @@ exports.updateProduct = async (req, res) => {
 
   await logActivity(req.user.id, 'PRODUCT_UPDATED', 'product', req.params.id, `Updated product specs for ${sku} (Packing Unit: ${cleanUnit})`);
   res.json({ message: 'Product updated successfully' });
+};
+
+// Delete a product only if it was never ordered (order history must keep its product lines)
+exports.deleteProduct = async (req, res) => {
+  const id = toId(req.params.id);
+  const product = id === null ? null : await Product.row({ id });
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  const used = await OrderItem.countDocuments({ product_id: id });
+  if (used > 0) {
+    return res.status(400).json({
+      error: `Cannot delete "${product.name}": it is used in ${used} order line(s). Set the product to Inactive instead.`,
+    });
+  }
+  await Product.deleteOne({ id });
+  await logActivity(req.user.id, 'PRODUCT_DELETED', 'product', product.sku, `Deleted product ${product.name} (${product.sku})`);
+  res.json({ message: 'Product deleted successfully' });
 };

@@ -34,6 +34,15 @@ const MATRIX_COLUMNS = [
   { key: 'manage', label: 'Manage', matchPatterns: ['manage'] },
 ];
 
+const ROLE_KEY = 'petroflow_selected_role_id';
+const readSavedRoleId = (): number | null => {
+  try {
+    const n = parseInt(localStorage.getItem(ROLE_KEY) || '', 10);
+    return Number.isFinite(n) ? n : null;
+  } catch { return null; }
+};
+const saveRoleId = (id: number) => { try { localStorage.setItem(ROLE_KEY, String(id)); } catch { /* ignore */ } };
+
 export const RolesPermissions: React.FC = () => {
   const { user, hasPermission, refreshUser } = useAuth();
   const isAdmin = ['super_admin', 'admin'].includes(user?.role_slug || '');
@@ -41,10 +50,7 @@ export const RolesPermissions: React.FC = () => {
 
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [allPermissions, setAllPermissions] = useState<PermissionItem[]>([]);
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(() => {
-    const saved = localStorage.getItem('petroflow_selected_role_id');
-    return saved ? parseInt(saved, 10) : null;
-  });
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(readSavedRoleId);
   const [selectedPermIds, setSelectedPermIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,8 +86,7 @@ export const RolesPermissions: React.FC = () => {
         setAllPermissions(json.allPermissions || []);
 
         if (loadedRoles.length > 0) {
-          const savedIdStr = localStorage.getItem('petroflow_selected_role_id');
-          const savedId = savedIdStr ? parseInt(savedIdStr, 10) : null;
+          const savedId = readSavedRoleId();
           const roleToSelect =
             (targetRoleId && loadedRoles.find(r => r.id === targetRoleId)) ||
             (selectedRoleId && loadedRoles.find(r => r.id === selectedRoleId)) ||
@@ -91,7 +96,7 @@ export const RolesPermissions: React.FC = () => {
           if (roleToSelect) {
             setSelectedRoleId(roleToSelect.id);
             setSelectedPermIds((roleToSelect.permissions || []).map((p: any) => p.id));
-            localStorage.setItem('petroflow_selected_role_id', String(roleToSelect.id));
+            saveRoleId(roleToSelect.id);
           }
         }
       } else {
@@ -113,7 +118,7 @@ export const RolesPermissions: React.FC = () => {
   const handleRoleSelect = (r: RoleItem) => {
     setSelectedRoleId(r.id);
     setSelectedPermIds((r.permissions || []).map((p: any) => p.id));
-    localStorage.setItem('petroflow_selected_role_id', String(r.id));
+    saveRoleId(r.id);
     setErrorToast(null);
     setSuccessToast(null);
   };
@@ -149,8 +154,9 @@ export const RolesPermissions: React.FC = () => {
       if (res.ok && data.success) {
         setSuccessToast(`Permissions saved successfully. (${selectedRole?.name}: ${selectedPermIds.length} active)`);
         setTimeout(() => setSuccessToast(null), 5000);
-        await refreshUser();
         await fetchRolesData(selectedRoleId);
+        // Re-read the signed-in user's permissions in the background (never blocks / blanks this screen)
+        refreshUser().catch(() => {});
       } else {
         setErrorToast(data.error || 'Failed to save permissions to database.');
       }
@@ -258,11 +264,19 @@ export const RolesPermissions: React.FC = () => {
 
   const selectedRole = roles.find(r => r.id === selectedRoleId);
 
+  // A role that no longer exists (e.g. removed "Dispatch" role remembered from an older session) must not break the page
+  useEffect(() => {
+    if (roles.length > 0 && selectedRoleId !== null && !roles.some(r => r.id === selectedRoleId)) {
+      handleRoleSelect(roles[0]);
+    }
+  }, [roles, selectedRoleId]);
+
   // Group permissions by module
   const modulesMap: Record<string, PermissionItem[]> = {};
   for (const p of allPermissions) {
-    if (!modulesMap[p.module]) modulesMap[p.module] = [];
-    modulesMap[p.module].push(p);
+    const mod = p.module || 'Other';
+    if (!modulesMap[mod]) modulesMap[mod] = [];
+    modulesMap[mod].push(p);
   }
 
   const moduleNames = Object.keys(modulesMap).sort();
@@ -384,7 +398,7 @@ export const RolesPermissions: React.FC = () => {
             {roles.map(r => {
               const isSelected = selectedRoleId === r.id;
               const count = r.permissions?.length || 0;
-              const isSystem = r.is_system === 1;
+              const isSystem = Number(r.is_system) === 1;
 
               return (
                 <div
@@ -568,7 +582,8 @@ export const RolesPermissions: React.FC = () => {
                       {MATRIX_COLUMNS.map(col => {
                         // Find matching permissions for this column within this module
                         const matchingPerms = modPerms.filter(p => {
-                          const actionLower = (p.code.split(':')[1] || p.code).toLowerCase();
+                          const code = p.code || '';
+                          const actionLower = (code.split(':')[1] || code).toLowerCase();
                           return col.matchPatterns.some(pat => actionLower.includes(pat));
                         });
 
@@ -586,7 +601,7 @@ export const RolesPermissions: React.FC = () => {
                             <div className="flex flex-col items-center gap-1">
                               {matchingPerms.map(p => {
                                 const isChecked = selectedPermIds.includes(p.id);
-                                const isSpecific = p.code.includes('view_own');
+                                const isSpecific = (p.code || '').includes('view_own');
                                 return (
                                   <label
                                     key={p.id}

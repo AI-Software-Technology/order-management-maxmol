@@ -29,7 +29,7 @@ import { Companies } from './pages/Companies.js';
 import { Users } from './pages/Users.js';
 import { RolesPermissions } from './pages/RolesPermissions.js';
 import { ActivityLogs } from './pages/ActivityLogs.js';
-import { Settings } from './pages/Settings.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 
 /**
  * The pages still call onNavigate('orders/12') / onNavigate('orders?status=NEW').
@@ -91,7 +91,7 @@ function AppLayout() {
 
   return (
     // h-screen + overflow-hidden: viewport-locked shell. Only <main> scrolls, sidebar never moves.
-    <div className="h-screen overflow-hidden bg-slate-100 flex text-slate-900 font-sans antialiased">
+    <div className="app-shell h-screen overflow-hidden bg-slate-100 flex text-slate-900 font-sans antialiased">
       <Sidebar
         currentPage={sectionFromPath(location.pathname)}
         onNavigate={navigate}
@@ -106,14 +106,16 @@ function AppLayout() {
         ></div>
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <div className="app-content flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Header
           onNavigate={navigate}
           onOpenNewOrder={() => navigate('create-order')}
           onToggleMobileSidebar={toggleMobileSidebar}
         />
-        <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto bg-slate-100">
-          <Outlet />
+        <main ref={mainRef} className="app-main flex-1 min-h-0 overflow-y-auto bg-slate-100">
+          <ErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>
@@ -214,7 +216,6 @@ function AppRoutes() {
         <Route path="users" element={<Guard id="users"><Users /></Guard>} />
         <Route path="roles" element={<Guard id="roles"><RolesPermissions /></Guard>} />
         <Route path="activity-logs" element={<Guard id="activity-logs"><ActivityLogs /></Guard>} />
-        <Route path="settings" element={<Guard id="settings"><Settings /></Guard>} />
 
         <Route path="*" element={<NotFound />} />
       </Route>

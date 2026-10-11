@@ -13,7 +13,6 @@ exports.demoUsers = (_req, res) => {
     { role: 'Sales Person', email: 'akash@lubricantdemo.com', name: 'Akash Singh (Sales)', badge: 'West Region Lead', color: 'amber' },
     { role: 'Sales Person', email: 'rahul@lubricantdemo.com', name: 'Rahul Sharma (Sales)', badge: 'Gujarat Region Lead', color: 'amber' },
     { role: 'Production Team', email: 'production@lubricantdemo.com', name: 'Vikram Patel', badge: 'Plant Formulation Lead', color: 'purple' },
-    { role: 'Dispatch Team', email: 'dispatch@lubricantdemo.com', name: 'Sunil Sharma', badge: 'Logistics & Fleet Coord.', color: 'cyan' },
   ];
   res.json({ users, defaultPassword: 'See card hint' });
 };

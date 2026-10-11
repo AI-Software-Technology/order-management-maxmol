@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewOrder, onTo
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-3 sm:px-4 lg:px-6">
+    <header className="print:hidden sticky top-0 z-30 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-3 sm:px-4 lg:px-6">
       {/* If Mobile Search is Active */}
       {showMobileSearch ? (
         <div className="flex items-center gap-2 w-full">
@@ -355,19 +355,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewOrder, onTo
                 <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
                 <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Role: {user?.role_name}</p>
               </div>
-
-              {canAccess(user, hasPermission, 'settings') && (
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  onNavigate('settings');
-                }}
-                className="w-full px-4 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-                Settings & Database Reset
-              </button>
-              )}
 
               <button
                 onClick={() => {

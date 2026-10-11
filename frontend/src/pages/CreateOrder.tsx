@@ -8,6 +8,8 @@ import { Company, Vendor, Product } from '../types.js';
 import { OrderSlipModal } from '../components/OrderSlipModal.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
+import { StateSelect } from '../components/StateSelect.js';
+import { stateForCity } from '../lib/india.js';
 
 interface CreateOrderProps {
   onNavigate: (page: string) => void;
@@ -56,10 +58,12 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
     billing_address: '',
     delivery_address: '',
     city: '',
-    state: 'Maharashtra',
+    state: '',
     pincode: '',
     notes: ''
   });
+  // true once the user picked a state by hand - then typing the city no longer overwrites it
+  const [stateChosenByUser, setStateChosenByUser] = useState<boolean>(false);
 
   // Step 3: Selected Products & Tax Type (GST 18% vs Non-GST)
   const [taxType, setTaxType] = useState<'GST_18' | 'NON_GST'>('GST_18');
@@ -93,7 +97,7 @@ const [selectedIds, setSelectedIds] = useState<number[]>([]);
         const token = getToken();
         const [cRes, vRes, pRes] = await Promise.all([
           apiFetch('/api/companies', { headers: { Authorization: `Bearer ${token}` } }),
-          apiFetch('/api/vendors', { headers: { Authorization: `Bearer ${token}` } }),
+          apiFetch('/api/vendors?status=active', { headers: { Authorization: `Bearer ${token}` } }),
           apiFetch('/api/products', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
@@ -147,7 +151,7 @@ const buildRow = (prod: Product): SelectedProductRow => {
     category: prod.category_name || '',
     unit: prod.unit,
     image_url: prod.image_url || PLACEHOLDER_IMG,
-    item_colour: prod.item_colour || 'Golden Yellow',
+    item_colour: prod.item_colour || '',
     quantity: 1,
     rate: initialRate,
     line_amount: initialRate,
@@ -202,7 +206,7 @@ const handleAddSelected = () => {
           category: prod.category_name || '',
           unit: prod.unit,
           image_url: prod.image_url || 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=120&auto=format&fit=crop&q=80',
-          item_colour: prod.item_colour || 'Golden Yellow',
+          item_colour: prod.item_colour || '',
           quantity: 1,
           rate: initialRate,
           line_amount: 1 * initialRate,
@@ -235,22 +239,6 @@ const handleAddSelected = () => {
       const next = [...prev];
       next[index].rate = safeRate;
       next[index].line_amount = next[index].quantity * safeRate;
-      return next;
-    });
-  };
-
-  const handleRowDateChange = (index: number, dateStr: string) => {
-    setProductRows(prev => {
-      const next = [...prev];
-      next[index].required_delivery_date = dateStr;
-      return next;
-    });
-  };
-
-  const handleRowNotesChange = (index: number, notes: string) => {
-    setProductRows(prev => {
-      const next = [...prev];
-      next[index].notes = notes;
       return next;
     });
   };
@@ -311,8 +299,8 @@ const toggleSelectAll = () => {
   // Inline Vendor Creation
   const handleSaveNewVendor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVendorForm.company_name || !newVendorForm.contact_person || !newVendorForm.mobile || !newVendorForm.billing_address) {
-      alert('Please fill all mandatory vendor fields.');
+    if (!newVendorForm.company_name || !newVendorForm.contact_person || !newVendorForm.billing_address || !newVendorForm.city || !newVendorForm.state) {
+      alert('Please fill all mandatory party fields (Party Name, Contact Person, City, State and Address).');
       return;
     }
 
@@ -326,7 +314,9 @@ const toggleSelectAll = () => {
       const data = await res.json();
       if (res.ok) {
         setShowAddVendorModal(false);
-        const vRes = await apiFetch('/api/vendors', { headers: { Authorization: `Bearer ${token}` } });
+        setStateChosenByUser(false);
+        setNewVendorForm(f => ({ ...f, company_name: '', contact_person: '', mobile: '', gstin: '', billing_address: '', delivery_address: '', city: '', state: '' }));
+        const vRes = await apiFetch('/api/vendors?status=active', { headers: { Authorization: `Bearer ${token}` } });
         if (vRes.ok) {
           const vData = await vRes.json();
           setVendors(vData.vendors || []);
@@ -377,7 +367,8 @@ const toggleSelectAll = () => {
           product_id: r.product_id,
           quantity: r.quantity,
           rate: r.rate,
-          notes: r.notes ? `${r.notes}${r.required_delivery_date ? ` (Req Date: ${r.required_delivery_date})` : ''}` : (r.required_delivery_date ? `Req Date: ${r.required_delivery_date}` : null)
+          item_colour: r.item_colour || null,
+          notes: null
         }))
       };
 
@@ -437,7 +428,7 @@ const toggleSelectAll = () => {
             Create Lubricant Sales Order
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Select billing entity, client vendor, custom product rates with live thumbnails, and generate official client order slip.
+            Select billing entity, party, custom product rates with live thumbnails, and generate official party order slip.
           </p>
         </div>
 
@@ -456,7 +447,7 @@ const toggleSelectAll = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { num: 1, label: 'Billing Company', desc: selectedCompany ? selectedCompany.code : 'Choose Entity', icon: Building2 },
-            { num: 2, label: 'Client / Vendor', desc: selectedVendor ? selectedVendor.company_name : 'Pick Client', icon: Store },
+            { num: 2, label: 'Party', desc: selectedVendor ? selectedVendor.company_name : 'Pick Party', icon: Store },
             { num: 3, label: 'Products & Rates', desc: `${productRows.length} items added`, icon: Package },
             { num: 4, label: 'Delivery & Review', desc: `Total: ₹${grandTotal.toLocaleString('en-IN')}`, icon: Truck }
           ].map(s => {
@@ -525,7 +516,7 @@ const toggleSelectAll = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       {c.logo_url ? (
-                        <img src={c.logo_url} alt={c.name} className="w-12 h-12 rounded-xl object-cover border border-slate-200" />
+                        <img src={c.logo_url} alt={c.name} className="w-12 h-12 rounded-xl object-contain bg-white border border-slate-200" />
                       ) : (
                         <div className="w-12 h-12 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-lg">
                           {c.code}
@@ -792,18 +783,14 @@ const toggleSelectAll = () => {
 
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="text-[11px] text-slate-500 font-medium">Lube Colour:</span>
-                      <select
+                      <input
+                        type="text"
+                        list="colour-options"
                         value={row.item_colour}
                         onChange={(e) => handleRowColourChange(idx, e.target.value)}
-                        className="text-xs bg-amber-50 text-amber-900 border border-amber-300 rounded-lg px-2 py-1 font-semibold focus:ring-0"
-                      >
-                        <option value="Golden Yellow">Golden Yellow</option>
-                        <option value="Red Amber">Red Amber</option>
-                        <option value="Clear Transparent">Clear Transparent</option>
-                        <option value="Dark Blue">Dark Blue</option>
-                        <option value="Fluorescent Green">Fluorescent Green</option>
-                        <option value="Cherry Red">Cherry Red</option>
-                      </select>
+                        placeholder="Colour"
+                        className="w-32 text-xs bg-amber-50 text-amber-900 border border-amber-300 rounded-lg px-2 py-1 font-semibold focus:ring-0"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-2.5">
@@ -847,15 +834,6 @@ const toggleSelectAll = () => {
                           ₹{(row.line_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
-                      <div className="w-1/2">
-                        <input
-                          type="text"
-                          placeholder="Item notes..."
-                          value={row.notes}
-                          onChange={(e) => handleRowNotesChange(idx, e.target.value)}
-                          className="w-full p-1.5 bg-white border border-slate-200 rounded-lg text-xs"
-                        />
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -876,8 +854,6 @@ const toggleSelectAll = () => {
                       <th className="py-3 px-3 w-36 text-right">
                         {taxType === 'GST_18' ? 'Line Total (Incl. GST)' : 'Line Total'}
                       </th>
-                      <th className="py-3 px-3 w-36">Req. Date</th>
-                      <th className="py-3 px-3">Notes</th>
                       <th className="py-3 px-3 w-10 text-center">Remove</th>
                     </tr>
                   </thead>
@@ -905,19 +881,15 @@ const toggleSelectAll = () => {
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="font-mono text-[10px] text-slate-600 font-semibold">{row.sku}</span>
                             <span className="text-[10px] text-slate-400">• {row.brand}</span>
-                            <select
+                            <input
+                              type="text"
+                              list="colour-options"
                               value={row.item_colour}
                               onChange={(e) => handleRowColourChange(idx, e.target.value)}
-                              className="text-[10px] bg-amber-50 text-amber-900 border border-amber-300 rounded px-1.5 py-0.5 font-semibold focus:ring-0 cursor-pointer"
-                              title="Select lubricant oil colour"
-                            >
-                              <option value="Golden Yellow">Golden Yellow</option>
-                              <option value="Red Amber">Red Amber</option>
-                              <option value="Clear Transparent">Clear Transparent</option>
-                              <option value="Dark Blue">Dark Blue</option>
-                              <option value="Fluorescent Green">Fluorescent Green</option>
-                              <option value="Cherry Red">Cherry Red</option>
-                            </select>
+                              placeholder="Colour"
+                              className="w-28 text-[10px] bg-amber-50 text-amber-900 border border-amber-300 rounded px-1.5 py-0.5 font-semibold focus:ring-0"
+                              title="Lubricant colour (taken from the product, editable)"
+                            />
                           </div>
                         </td>
 
@@ -959,27 +931,6 @@ const toggleSelectAll = () => {
                         {/* Line Amount */}
                         <td className="py-3 px-3 font-mono font-bold text-slate-900 text-right text-sm">
                           ₹{(row.line_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-
-                        {/* Required Delivery Date */}
-                        <td className="py-3 px-3">
-                          <input
-                            type="date"
-                            value={row.required_delivery_date}
-                            onChange={(e) => handleRowDateChange(idx, e.target.value)}
-                            className="w-full p-1 bg-white border border-slate-200 rounded text-[11px]"
-                          />
-                        </td>
-
-                        {/* Notes */}
-                        <td className="py-3 px-3">
-                          <input
-                            type="text"
-                            placeholder="e.g. Special cap seal"
-                            value={row.notes}
-                            onChange={(e) => handleRowNotesChange(idx, e.target.value)}
-                            className="w-full p-1 bg-white border border-slate-200 rounded text-[11px]"
-                          />
                         </td>
 
                         {/* Remove Button */}
@@ -1460,18 +1411,25 @@ const toggleSelectAll = () => {
     </div>
   </div>
 )}
+      {/* Colour suggestions come from the colours entered on the products themselves (no fixed list) */}
+      <datalist id="colour-options">
+        {Array.from(new Set(products.map(p => (p.item_colour || '').trim()).filter(Boolean))).map(c => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+
       {/* INLINE NEW VENDOR MODAL */}
       {showAddVendorModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-base text-slate-900">Add New Client Account</h3>
+              <h3 className="font-bold text-base text-slate-900">Add New Party</h3>
               <button onClick={() => setShowAddVendorModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
 
             <form onSubmit={handleSaveNewVendor} className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold mb-1">Company / Firm Name *</label>
+                <label className="block font-semibold mb-1">Party Name *</label>
                 <input
                   type="text"
                   required
@@ -1482,7 +1440,7 @@ const toggleSelectAll = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block font-semibold mb-1">Contact Person *</label>
                   <input
@@ -1490,16 +1448,6 @@ const toggleSelectAll = () => {
                     required
                     value={newVendorForm.contact_person}
                     onChange={(e) => setNewVendorForm({ ...newVendorForm, contact_person: e.target.value })}
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1">Primary Mobile *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newVendorForm.mobile}
-                    onChange={(e) => setNewVendorForm({ ...newVendorForm, mobile: e.target.value })}
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                   />
                 </div>
@@ -1522,10 +1470,29 @@ const toggleSelectAll = () => {
                     type="text"
                     required
                     value={newVendorForm.city}
-                    onChange={(e) => setNewVendorForm({ ...newVendorForm, city: e.target.value })}
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const guess = stateForCity(city);
+                      // Fill the state from the city (Delhi -> Delhi) unless the user already chose one by hand
+                      setNewVendorForm({
+                        ...newVendorForm,
+                        city,
+                        state: !stateChosenByUser && guess ? guess : newVendorForm.state
+                      });
+                    }}
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">State *</label>
+                <StateSelect
+                  required
+                  value={newVendorForm.state}
+                  onChange={(st) => { setStateChosenByUser(true); setNewVendorForm({ ...newVendorForm, state: st }); }}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                />
               </div>
 
               <div>
@@ -1551,7 +1518,7 @@ const toggleSelectAll = () => {
                   type="submit"
                   className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg shadow-xs"
                 >
-                  Save & Select Client
+                  Save & Select Party
                 </button>
               </div>
             </form>

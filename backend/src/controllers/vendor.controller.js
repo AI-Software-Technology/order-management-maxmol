@@ -23,12 +23,24 @@ async function withUserNames(vendors, { mobile = false } = {}) {
 
 exports.list = async (req, res) => {
   const user = req.user;
-  const { search, city, state, sales_person_id } = req.query;
+  const { search, city, state, sales_person_id, status } = req.query;
   const filter = {};
 
   // Security Rule: Sales Person can ONLY see their own parties
   if (user.role_slug === 'sales_person') filter.assigned_sales_person_id = user.id;
   else if (sales_person_id) filter.assigned_sales_person_id = Number(sales_person_id);
+
+  // Active / inactive totals for the parties this user may see (ignores search / status filters)
+  const scope = { ...filter };
+  const [totalCount, inactiveCount] = await Promise.all([
+    Vendor.countDocuments(scope),
+    Vendor.countDocuments({ ...scope, status: 'inactive' }),
+  ]);
+  const counts = { total: totalCount, active: totalCount - inactiveCount, inactive: inactiveCount };
+
+  // ?status=active | inactive  (anything else = all). Old rows without a status count as active.
+  if (status === 'active') filter.status = { $ne: 'inactive' };
+  else if (status === 'inactive') filter.status = 'inactive';
 
   if (search) {
     const rx = like(search);
@@ -57,7 +69,7 @@ exports.list = async (req, res) => {
       pending_amount: sumBy(live, (o) => o.pending_amount),
     };
   });
-  res.json({ vendors });
+  res.json({ vendors, counts });
 };
 
 exports.getOne = async (req, res) => {
@@ -117,8 +129,8 @@ exports.create = async (req, res) => {
     billing_address, delivery_address, city, state, pincode, assigned_sales_person_id, notes,
   } = req.body;
 
-  if (!company_name || !mobile || !billing_address || !city || !state) {
-    return res.status(400).json({ error: 'Party Name, Mobile, Address, City and State are required' });
+  if (!company_name || !billing_address || !city || !state) {
+    return res.status(400).json({ error: 'Party Name, Address, City and State are required' });
   }
 
   // Contact person is removed from UI; default to party name if not provided
@@ -134,7 +146,7 @@ exports.create = async (req, res) => {
     vendor_code: vendorCode,
     company_name: String(company_name).trim(),
     contact_person: finalContact,
-    mobile: String(mobile).trim(),
+    mobile: mobile ? String(mobile).trim() : '',
     alt_mobile: trimOrNull(alt_mobile),
     email: trimOrNull(email),
     gstin: gstin ? String(gstin).trim().toUpperCase() : null,
@@ -175,8 +187,8 @@ exports.update = async (req, res) => {
     billing_address, delivery_address, city, state, pincode, assigned_sales_person_id, status, notes,
   } = req.body;
 
-  if (!company_name || !mobile || !billing_address || !city || !state) {
-    return res.status(400).json({ error: 'Party Name, Mobile, Billing Address, City and State are required' });
+  if (!company_name || !billing_address || !city || !state) {
+    return res.status(400).json({ error: 'Party Name, Billing Address, City and State are required' });
   }
 
   const finalContact = (contact_person && String(contact_person).trim()) || existing.contact_person || String(company_name).trim();
@@ -192,7 +204,7 @@ exports.update = async (req, res) => {
       $set: {
         company_name: String(company_name).trim(),
         contact_person: finalContact,
-        mobile: String(mobile).trim(),
+        mobile: mobile ? String(mobile).trim() : '',
         alt_mobile: trimOrNull(alt_mobile),
         email: trimOrNull(email),
         gstin: gstin ? String(gstin).trim().toUpperCase() : null,

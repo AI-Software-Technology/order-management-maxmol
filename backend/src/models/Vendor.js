@@ -5,7 +5,7 @@ module.exports = defineModel('Vendor', 'vendors', {
   vendor_code: { type: String, required: true, unique: true },
   company_name: reqStr(),
   contact_person: reqStr(),
-  mobile: reqStr(),
+  mobile: str(''),
   alt_mobile: str(),
   email: str(),
   gstin: str(),

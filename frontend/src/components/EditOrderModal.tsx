@@ -126,7 +126,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             product_name: it.product_name,
             sku: it.sku,
             unit: it.unit,
-            item_colour: it.item_colour || 'Golden Yellow',
+            item_colour: it.item_colour || '',
             quantity: it.quantity,
             rate: it.rate,
             line_amount: Math.round(it.quantity * it.rate * 100) / 100,
@@ -215,7 +215,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           product_name: prod.name,
           sku: prod.sku,
           unit: prod.unit,
-          item_colour: prod.item_colour || 'Golden Yellow',
+          item_colour: prod.item_colour || '',
           quantity: 1,
           rate: defaultRate,
           line_amount: defaultRate,
@@ -457,7 +457,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     required
                   >
-                    {vendors.map(v => (
+                    {vendors.filter(v => v.status !== 'inactive' || v.id === selectedVendorId).map(v => (
                       <option key={v.id} value={v.id}>
                         {v.company_name} ({v.vendor_code}) - {v.city}, {v.state}
                       </option>

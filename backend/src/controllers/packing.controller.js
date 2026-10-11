@@ -268,7 +268,7 @@ exports.handoverDispatch = async (req, res) => {
   );
   await addHistory(order.id, 'Handed Over to Dispatch', order.packing_status || 'PACKED', 'READY_FOR_DISPATCH', 'Packed consignment handed over to logistics bay. Ready for vehicle loading.', user.id);
   await logActivity(user.id, 'PACKING_HANDOVER', 'order', order.order_number, `${user.name} handed over packed order ${order.order_number} to Dispatch`);
-  await sendNotification(null, 'dispatch_team', 'Ready for Vehicle Loading', `Order ${order.order_number} packed and handed over to Dispatch bay`, 'success', order.id);
+  await sendNotification(null, 'admin', 'Ready for Vehicle Loading', `Order ${order.order_number} packed and handed over to Dispatch bay`, 'success', order.id);
 
   res.json({ message: 'Order successfully handed over to Dispatch Team! Status updated to Ready for Dispatch.', packing_status: 'HANDED_OVER_TO_DISPATCH' });
 };

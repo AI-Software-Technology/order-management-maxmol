@@ -81,11 +81,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null, token: null, sessionEnd: 'expired' });
       } else {
         // Server problem (5xx etc.) - keep the token so a retry can work
-        set({ user: null, connectionError: 'The server returned an error. Try again in a moment.' });
+        set({ user: get().user, connectionError: get().user ? null : 'The server returned an error. Try again in a moment.' });
       }
     } catch (err) {
       console.error('Failed to verify token:', err);
-      set({ user: null, connectionError: 'Cannot reach the server. Check your connection and try again.' });
+      set({ user: get().user, connectionError: get().user ? null : 'Cannot reach the server. Check your connection and try again.' });
     } finally {
       set({ isLoading: false });
     }

@@ -13,7 +13,7 @@ exports.listOrders = async (req, res) => {
   const user = req.user;
   const canViewDispatch =
     user.role_slug === 'super_admin' || user.permissions.includes('dispatch:view') ||
-    user.role_slug === 'admin' || user.role_slug === 'dispatch_team';
+    user.role_slug === 'admin';
   if (!canViewDispatch) {
     return res.status(403).json({ error: 'Forbidden: You do not have permission to access Dispatch & Delivery' });
   }

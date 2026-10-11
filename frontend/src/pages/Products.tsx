@@ -4,6 +4,7 @@ import { useAuth } from '../store/authStore.js';
 import { Product } from '../types.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
+import { confirmAndDelete } from '../lib/deleteApi.js';
 
 export const Products: React.FC = () => {
   const { user } = useAuth();
@@ -140,6 +141,10 @@ export const Products: React.FC = () => {
   };
 
   // Open Edit Modal
+  const handleDeleteProduct = async (p: Product) => {
+    if (await confirmAndDelete(`/api/products/${p.id}`, `Delete product "${p.name}" (${p.sku})? This cannot be undone.`)) fetchProducts();
+  };
+
   const openEditModal = (p: Product) => {
     setModalMode('edit');
     setEditingId(p.id);
@@ -341,6 +346,15 @@ export const Products: React.FC = () => {
                       <span>Edit</span>
                     </button>
                   )}
+                  {canManage && (
+                    <button
+                      onClick={() => handleDeleteProduct(p)}
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 rounded-lg text-xs transition"
+                      title="Delete Product"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -425,6 +439,15 @@ export const Products: React.FC = () => {
                           title="Edit Product"
                         >
                           <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canManage && (
+                        <button
+                          onClick={() => handleDeleteProduct(p)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          title="Delete Product"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </td>

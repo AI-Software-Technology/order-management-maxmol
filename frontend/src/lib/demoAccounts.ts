@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { ShieldCheck, Building2, CreditCard, UserCheck, PackageCheck, Truck } from 'lucide-react';
+import { ShieldCheck, Building2, CreditCard, UserCheck, PackageCheck } from 'lucide-react';
 
 // Only ever loaded through a dynamic import() behind DEMO_MODE (see lib/demo.ts).
 export interface DemoAccount {
@@ -24,7 +24,5 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   { role: 'Sales: Rahul Sharma', name: 'Rahul Sharma', email: 'rahul@lubricantdemo.com', password: 'Sales@123',
     summary: 'Gujarat parties and custom-price orders', icon: UserCheck, tone: 'bg-amber-100 text-amber-800' },
   { role: 'Packing Team', name: 'Vikram Patel', email: 'production@lubricantdemo.com', password: 'Production@123',
-    summary: 'Check stock, pack and hand over to dispatch', icon: PackageCheck, tone: 'bg-purple-100 text-purple-700' },
-  { role: 'Dispatch', name: 'Sunil Sharma', email: 'dispatch@lubricantdemo.com', password: 'Dispatch@123',
-    summary: 'Assign vehicle and LR, record delivery', icon: Truck, tone: 'bg-cyan-100 text-cyan-700' }
+    summary: 'Check stock, pack and hand over to dispatch', icon: PackageCheck, tone: 'bg-purple-100 text-purple-700' }
 ];

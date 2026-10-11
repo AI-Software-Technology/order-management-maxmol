@@ -41,8 +41,8 @@ function billFigures(billAmountRaw, receivedRaw, pendingRaw, taxType) {
 const invoiceNo = (orderNumber) => String(orderNumber).replace('ORD-', 'INV-');
 const panOf = (gst) => (gst ? String(gst).substr(2, 10) : null);
 
-const companyFields = (c) => ({
-  company_name: c?.name ?? null, company_code: c?.code ?? null, company_gstin: c?.gst_number ?? null,
+const companyFields = (c, withLogo = false) => ({
+  company_name: c?.name ?? null, company_code: c?.code ?? null, ...(withLogo ? { company_logo: c?.logo_url ?? null } : {}), company_gstin: c?.gst_number ?? null,
   company_pan: panOf(c?.gst_number), company_address: c?.address ?? null, company_city: c?.city ?? null,
   company_state: c?.state ?? null, company_pincode: c?.pincode ?? null, company_mobile: c?.mobile ?? null,
   company_email: c?.email ?? null, company_bank: c?.bank_name ?? null, company_account: c?.account_no ?? null,
@@ -195,7 +195,7 @@ exports.getOne = async (req, res) => {
     party_name: v?.company_name ?? null, party_contact: v?.contact_person ?? null, party_city: v?.city ?? null,
     party_state: v?.state ?? null, party_address: v?.billing_address ?? null, party_gstin: v?.gstin ?? null,
     party_mobile: v?.mobile ?? null, party_email: v?.email ?? null,
-    ...companyFields(c),
+    ...companyFields(c, true),
     sales_person_name: u?.name ?? null, sales_person_mobile: u?.mobile ?? null, sales_person_email: u?.email ?? null,
     ...figures,
     items: rawItems.map((i) => ({

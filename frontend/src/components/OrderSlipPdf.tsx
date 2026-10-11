@@ -37,7 +37,7 @@ const s = StyleSheet.create({
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: C.ink },
   brandWrap: { flexDirection: 'row', flex: 1, paddingRight: 12 },
-  logo: { width: 44, height: 44, borderRadius: 4, objectFit: 'cover', marginRight: 8 },
+  logo: { width: 44, height: 44, borderRadius: 4, objectFit: 'contain', marginRight: 8 },
   logoFallback: { width: 44, height: 44, borderRadius: 4, backgroundColor: C.ink, marginRight: 8, alignItems: 'center', justifyContent: 'center' },
   logoFallbackText: { color: C.amber, fontWeight: 700, fontSize: 12 },
   brandName: { fontSize: 13, fontWeight: 700, color: C.ink },

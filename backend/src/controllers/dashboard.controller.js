@@ -619,7 +619,7 @@ exports.stats = async (req, res) => {
   const isSuperAdmin = roleSlug === 'super_admin';
   const isAdmin = roleSlug === 'admin' || isSuperAdmin;
   const isSalesPerson = roleSlug === 'sales_person';
-  const isPacking = ['packing_team', 'production_team', 'dispatch_team'].includes(roleSlug);
+  const isPacking = ['packing_team', 'production_team'].includes(roleSlug);
   const isAccounts = roleSlug === 'accounts';
 
   const { startDate, endDate, date_from, date_to, sales_person_id, vendor_id, order_status } = req.query;

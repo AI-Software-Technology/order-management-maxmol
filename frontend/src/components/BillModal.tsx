@@ -151,9 +151,13 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
                   {/* Company Info */}
                   <div className="space-y-1 max-w-md">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded bg-amber-500 text-slate-950 flex items-center justify-center font-black">
-                        <Droplets className="w-4 h-4 fill-slate-950" />
-                      </div>
+                      {bill.company_logo ? (
+                        <img src={bill.company_logo} alt="" className="h-10 w-auto max-w-[96px] object-contain" />
+                      ) : (
+                        <div className="w-7 h-7 rounded bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                          <Droplets className="w-4 h-4 fill-slate-950" />
+                        </div>
+                      )}
                       <h2 className="text-lg font-black tracking-wide text-slate-950 uppercase">
                         {bill.company_name || 'PetroFlow Lubricants Pvt Ltd'}
                       </h2>

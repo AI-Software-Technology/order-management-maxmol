@@ -1,6 +1,6 @@
 // Full RBAC permission matrix + default role grants.
 // ensurePermissions() is idempotent and runs on every server start.
-const { Role, Permission, Setting } = require('../models');
+const { Role, Permission, Setting, User } = require('../models');
 
 const FULL_PERMISSIONS = [
   { module: 'Dashboard', action: 'View Dashboard', code: 'dashboard:view', description: 'Access operational dashboard and metrics' },
@@ -70,7 +70,6 @@ const BASELINE = {
     'products:view', 'packing:view', 'dispatch:view', 'payments:view', 'payments:add',
   ],
   packing_team: ['dashboard:view', 'packing:view', 'packing:manage', 'orders:view_all', 'products:view'],
-  dispatch_team: ['dashboard:view', 'dispatch:view', 'dispatch:create', 'dispatch:update', 'delivery:view', 'delivery:update', 'orders:view_all', 'products:view'],
 };
 
 async function ensurePermissions() {
@@ -85,6 +84,16 @@ async function ensurePermissions() {
     { slug: 'production_team' },
     { $set: { name: 'Packing Team', slug: 'packing_team', description: 'Packing floor, stock readiness, box packaging and dispatch bay handover' } }
   );
+
+  // 2b. "Dispatch Team" role was removed. Move its users to Packing Team, then delete the role.
+  const dispatchRole = await Role.row({ slug: 'dispatch_team' });
+  if (dispatchRole) {
+    const packingRole = await Role.row({ slug: 'packing_team' });
+    if (packingRole) {
+      await User.updateMany({ role_id: dispatchRole.id }, { $set: { role_id: packingRole.id } });
+      await Role.deleteOne({ id: dispatchRole.id });
+    }
+  }
 
   const permMap = {};
   for (const p of await Permission.rows({}, { select: 'id code' })) permMap[p.code] = p.id;

@@ -1,13 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { Building, Edit2, Plus, RefreshCw, X, CheckCircle2 } from 'lucide-react';
+import { Building, Edit2, Plus, RefreshCw, X, CheckCircle2, Trash2 } from 'lucide-react';
 import { Company } from '../types.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
+import { confirmAndDelete } from '../lib/deleteApi.js';
+import { StateSelect } from '../components/StateSelect.js';
+import { stateForCity } from '../lib/india.js';
+
+// Shrinks an uploaded logo to max 400px and returns a PNG data URL (keeps transparency, small payload)
+function fileToLogoDataUrl(file: File, maxSize = 400): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) return reject(new Error('Please choose an image file (PNG, JPG, WEBP)'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the file'));
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onerror = () => reject(new Error('This image cannot be opened'));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/png'));
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export const Companies: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [stateByUser, setStateByUser] = useState(true);
+
+  const handleDeleteCompany = async (c: Company) => {
+    if (await confirmAndDelete(`/api/companies/${c.id}`, `Delete billing company "${c.name}"? This cannot be undone.`)) fetchCompanies();
+  };
+
+  const isNew = editingCompany !== null && editingCompany.id === 0;
+
+  const openNew = () => {
+    setLogoError(null);
+    setStateByUser(false);
+    setEditingCompany({
+      id: 0, name: '', code: '', logo_url: '', gst_number: '', address: '', city: '', state: '', pincode: '',
+      mobile: '', email: '', bank_name: '', account_no: '', ifsc_code: '', branch: '', terms: '', status: 'active'
+    });
+  };
+
+  const openEdit = (c: Company) => {
+    setLogoError(null);
+    setStateByUser(false);
+    setEditingCompany({ ...c });
+  };
+
+  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !editingCompany) return;
+    try {
+      setLogoError(null);
+      const dataUrl = await fileToLogoDataUrl(file);
+      setEditingCompany(prev => (prev ? { ...prev, logo_url: dataUrl } : prev));
+    } catch (err: any) {
+      setLogoError(err.message || 'Logo upload failed');
+    }
+  };
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -34,10 +97,11 @@ export const Companies: React.FC = () => {
   const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCompany) return;
+    setSaving(true);
     try {
       const token = getToken();
-      const res = await apiFetch(`/api/companies/${editingCompany.id}`, {
-        method: 'PUT',
+      const res = await apiFetch(isNew ? '/api/companies' : `/api/companies/${editingCompany.id}`, {
+        method: isNew ? 'POST' : 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(editingCompany)
       });
@@ -46,10 +110,13 @@ export const Companies: React.FC = () => {
         fetchCompanies();
       } else {
         const j = await res.json();
-        alert(j.error || 'Update failed');
+        alert(j.error || (isNew ? 'Could not add company' : 'Update failed'));
       }
     } catch (err) {
       console.error(err);
+      alert('Network error while saving');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -67,13 +134,22 @@ export const Companies: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={fetchCompanies}
-          className="p-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1.5 self-start"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          <button
+            onClick={fetchCompanies}
+            className="p-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1.5"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </button>
+          <button
+            onClick={openNew}
+            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Company</span>
+          </button>
+        </div>
       </div>
 
       {/* Companies Cards */}
@@ -84,7 +160,7 @@ export const Companies: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   {c.logo_url ? (
-                    <img src={c.logo_url} alt={c.name} className="w-14 h-14 rounded-xl object-cover border border-slate-200 shadow-xs" />
+                    <img src={c.logo_url} alt={c.name} className="w-14 h-14 rounded-xl object-contain bg-white border border-slate-200 shadow-xs" />
                   ) : (
                     <div className="w-14 h-14 rounded-xl bg-slate-900 text-amber-400 font-bold flex items-center justify-center text-lg shadow-xs">
                       {c.code}
@@ -98,13 +174,22 @@ export const Companies: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setEditingCompany(c)}
+                  onClick={() => openEdit(c)}
                   className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                   title="Edit Company Details"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
+                <button
+                  onClick={() => handleDeleteCompany(c)}
+                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                  title="Delete Company"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                </div>
               </div>
 
               <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
@@ -136,10 +221,10 @@ export const Companies: React.FC = () => {
                 <CheckCircle2 className="w-3.5 h-3.5" /> Active Billing Entity
               </span>
               <button
-                onClick={() => setEditingCompany(c)}
+                onClick={() => openEdit(c)}
                 className="text-amber-600 hover:text-amber-700 font-semibold"
               >
-                Modify Bank & Terms →
+                Edit Company & Logo →
               </button>
             </div>
           </div>
@@ -151,7 +236,7 @@ export const Companies: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-base text-slate-900">Edit Company Information</h3>
+              <h3 className="font-bold text-base text-slate-900">{isNew ? 'Add New Billing Company' : 'Edit Company Information'}</h3>
               <button onClick={() => setEditingCompany(null)}><X className="w-5 h-5 text-slate-400" /></button>
             </div>
 
@@ -165,6 +250,52 @@ export const Companies: React.FC = () => {
                   onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
                   className="w-full p-2 bg-slate-50 border rounded-lg font-bold"
                 />
+              </div>
+
+              {isNew && (
+                <div>
+                  <label className="block font-semibold mb-1">Company Code * <span className="font-normal text-slate-400">(short unique code, e.g. CMP-C)</span></label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={12}
+                    value={editingCompany.code}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, code: e.target.value.toUpperCase().replace(/\s+/g, '-') })}
+                    className="w-full p-2 bg-slate-50 border rounded-lg font-mono uppercase"
+                    placeholder="CMP-C"
+                  />
+                </div>
+              )}
+
+              {/* Company logo */}
+              <div className="p-3 bg-slate-50 rounded-xl border space-y-2">
+                <p className="font-bold text-slate-800">Company Logo</p>
+                <div className="flex items-center gap-3">
+                  {editingCompany.logo_url ? (
+                    <img src={editingCompany.logo_url} alt="Logo preview" className="w-16 h-16 rounded-lg object-contain bg-white border border-slate-200" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-slate-900 text-amber-400 font-bold flex items-center justify-center">
+                      {editingCompany.code}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg font-semibold cursor-pointer w-fit">
+                      {editingCompany.logo_url ? 'Change logo' : 'Upload logo'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleLogoFile} />
+                    </label>
+                    {editingCompany.logo_url && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingCompany({ ...editingCompany, logo_url: '' })}
+                        className="text-rose-600 hover:text-rose-700 font-semibold text-left w-fit"
+                      >
+                        Remove logo
+                      </button>
+                    )}
+                    <p className="text-[10px] text-slate-400">PNG / JPG / WEBP. Shown on order slips and invoices.</p>
+                  </div>
+                </div>
+                {logoError && <p className="text-rose-600 font-semibold">{logoError}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -197,12 +328,39 @@ export const Companies: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">City & State</label>
+                  <label className="block font-semibold mb-1">City</label>
                   <input
                     type="text"
-                    value={`${editingCompany.city}, ${editingCompany.state}`}
-                    onChange={(e) => setEditingCompany({ ...editingCompany, city: e.target.value })}
+                    value={editingCompany.city || ''}
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const guess = stateForCity(city);
+                      setEditingCompany({
+                        ...editingCompany,
+                        city,
+                        state: !stateByUser && guess ? guess : editingCompany.state
+                      });
+                    }}
                     className="w-full p-2 bg-slate-50 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">State</label>
+                  <StateSelect
+                    value={editingCompany.state || ''}
+                    onChange={(st) => { setStateByUser(true); setEditingCompany({ ...editingCompany, state: st }); }}
+                    className="w-full p-2 bg-slate-50 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Pincode</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={editingCompany.pincode || ''}
+                    onChange={(e) => setEditingCompany({ ...editingCompany, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                    className="w-full p-2 bg-slate-50 border rounded-lg font-mono"
                   />
                 </div>
               </div>
@@ -271,7 +429,7 @@ export const Companies: React.FC = () => {
 
               <div className="flex justify-end gap-2 pt-3 border-t">
                 <button type="button" onClick={() => setEditingCompany(null)} className="px-4 py-2">Cancel</button>
-                <button type="submit" className="px-5 py-2 bg-amber-500 text-slate-950 font-bold rounded-lg">Save Changes</button>
+                <button type="submit" disabled={saving} className="px-5 py-2 bg-amber-500 text-slate-950 font-bold rounded-lg disabled:opacity-50">{saving ? 'Saving...' : isNew ? 'Add Company' : 'Save Changes'}</button>
               </div>
             </form>
           </div>

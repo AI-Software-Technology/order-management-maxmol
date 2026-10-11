@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Tags, Plus, X, RefreshCw } from 'lucide-react';
+import { Tags, Plus, X, RefreshCw, Trash2 } from 'lucide-react';
 import { useAuth } from '../store/authStore.js';
 import { Brand, Category } from '../types.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
+import { confirmAndDelete } from '../lib/deleteApi.js';
 
 export const BrandsCategories: React.FC = () => {
   const { user } = useAuth();
@@ -46,6 +47,11 @@ export const BrandsCategories: React.FC = () => {
   useEffect(() => {
     fetchMasters();
   }, []);
+
+  const handleDelete = async (kind: 'brands' | 'categories', id: number, name: string) => {
+    const label = kind === 'brands' ? 'brand' : 'category';
+    if (await confirmAndDelete(`/api/${kind}/${id}`, `Delete ${label} "${name}"? This cannot be undone.`)) fetchMasters();
+  };
 
   const handleAddBrand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,9 +152,20 @@ export const BrandsCategories: React.FC = () => {
                   <h4 className="font-bold text-slate-900">{b.name}</h4>
                   <p className="text-slate-500 text-[11px] mt-0.5">{b.description || 'Lubricant Brand'}</p>
                 </div>
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-semibold rounded text-[10px]">
-                  Active
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-semibold rounded text-[10px]">
+                    Active
+                  </span>
+                  {canManage && (
+                    <button
+                      onClick={() => handleDelete('brands', b.id, b.name)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
+                      title="Delete brand"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -179,9 +196,20 @@ export const BrandsCategories: React.FC = () => {
                   <h4 className="font-bold text-slate-900">{c.name}</h4>
                   <p className="text-slate-500 text-[11px] mt-0.5">{c.description || 'Functional Fluid Category'}</p>
                 </div>
-                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded text-[10px]">
-                  Active
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-semibold rounded text-[10px]">
+                    Active
+                  </span>
+                  {canManage && (
+                    <button
+                      onClick={() => handleDelete('categories', c.id, c.name)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
+                      title="Delete category"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

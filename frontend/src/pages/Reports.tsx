@@ -4,6 +4,28 @@ import { useAuth } from '../store/authStore.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
 
+// Columns that hold money. Everything else (counts, quantities, ids) is shown as plain numbers.
+const MONEY_COLS = new Set([
+  'grand_total', 'amount_received', 'pending_amount', 'total_sales', 'total_received', 'total_pending',
+  'total_order_value', 'total_sales_value', 'average_selling_rate'
+]);
+const DATE_COLS = new Set(['created_at', 'dispatch_date']);
+
+const prettyDate = (v: any) => {
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatCell = (col: string, val: any): { text: string; right: boolean } => {
+  if (val === null || val === undefined || val === '') return { text: '—', right: false };
+  if (MONEY_COLS.has(col) && typeof val === 'number') {
+    return { text: `₹${val.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, right: true };
+  }
+  if (DATE_COLS.has(col)) return { text: prettyDate(val), right: false };
+  if (typeof val === 'number') return { text: val.toLocaleString('en-IN'), right: true };
+  return { text: String(val), right: false };
+};
+
 export const Reports: React.FC = () => {
   const { user } = useAuth();
   const isSalesPerson = user?.role_slug === 'sales_person';
@@ -75,21 +97,28 @@ export const Reports: React.FC = () => {
   }, [reportType, companyId, salesPersonId, status, dateFrom, dateTo]);
 
   const handlePrint = () => {
+    // The browser uses document.title as the default PDF file name.
+    const prevTitle = document.title;
+    document.title = `${reportTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}`;
+    const restore = () => { document.title = prevTitle; window.removeEventListener('afterprint', restore); };
+    window.addEventListener('afterprint', restore);
     window.print();
   };
 
   const handleExportCSV = () => {
     if (reportData.length === 0) return;
     const headers = Object.keys(reportData[0]);
-    const rows = reportData.map(row => headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','));
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const esc = (v: any) => `"${(v === null || v === undefined ? '' : String(v)).replace(/"/g, '""')}"`;
+    const rows = reportData.map(row => headers.map(h => esc(row[h])).join(','));
+    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `${reportType}_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.href = url;
+    link.download = `${reportType}_report_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const reportTypes = [
@@ -227,6 +256,15 @@ export const Reports: React.FC = () => {
         <div className="flex items-center justify-between border-b pb-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900">{reportTitle}</h2>
+            <p className="hidden print:block text-[11px] text-slate-600 mt-0.5">
+              {[
+                companyId && `Billing: ${companies.find(c => String(c.id) === companyId)?.name ?? companyId}`,
+                salesPersonId && `Sales: ${salesPersons.find(sp => String(sp.id) === salesPersonId)?.name ?? salesPersonId}`,
+                status !== 'ALL' && `Status: ${status}`,
+                dateFrom && `From: ${dateFrom}`,
+                dateTo && `To: ${dateTo}`
+              ].filter(Boolean).join('  |  ') || 'Filters: none (all records)'}
+            </p>
             <p className="text-xs text-slate-500">
               Generated on {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} • PetroFlow Enterprise Lubricant ERP
             </p>
@@ -241,7 +279,7 @@ export const Reports: React.FC = () => {
         ) : reportData.length === 0 ? (
           <div className="py-12 text-center text-slate-400">No records found for current filters.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto print-wrap">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-900 text-white">
@@ -256,11 +294,10 @@ export const Reports: React.FC = () => {
                 {reportData.map((row, rIdx) => (
                   <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                     {Object.keys(row).map((col, cIdx) => {
-                      const val = row[col];
-                      const isNumeric = typeof val === 'number' && (col.includes('total') || col.includes('amount') || col.includes('rate') || col.includes('sales') || col.includes('pending'));
+                      const cell = formatCell(col, row[col]);
                       return (
-                        <td key={cIdx} className={`py-2 px-3 border-r border-slate-100 last:border-0 ${isNumeric ? 'text-right font-mono font-semibold' : ''}`}>
-                          {isNumeric ? `₹${val.toLocaleString('en-IN')}` : (val !== null && val !== undefined ? val.toString() : '—')}
+                        <td key={cIdx} className={`py-2 px-3 border-r border-slate-100 last:border-0 ${cell.right ? 'text-right font-mono font-semibold' : ''}`}>
+                          {cell.text}
                         </td>
                       );
                     })}

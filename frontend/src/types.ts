@@ -375,6 +375,7 @@ export interface Bill {
   company_id: number;
   company_name: string;
   company_code?: string;
+  company_logo?: string;
   company_gstin?: string;
   company_pan?: string;
   company_address?: string;

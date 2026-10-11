@@ -25,6 +25,8 @@ import { useAuth } from "../store/authStore.js";
 import { Vendor } from "../types.js";
 import { apiFetch } from "../lib/api.js";
 import { getToken } from "../lib/session.js";
+import { StateSelect } from "../components/StateSelect.js";
+import { stateForCity } from "../lib/india.js";
 
 export const Vendors: React.FC<{
   onNavigate: (page: string) => void;
@@ -36,6 +38,11 @@ export const Vendors: React.FC<{
   const [search, setSearch] = useState<string>("");
   const [cityFilter, setCityFilter] = useState<string>("");
   const [salesFilter, setSalesFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [counts, setCounts] = useState<{ total: number; active: number; inactive: number }>({ total: 0, active: 0, inactive: 0 });
+  // true once the user picked a state by hand - then typing the city no longer overwrites it
+  const [editStateByUser, setEditStateByUser] = useState<boolean>(false);
+  const [newStateByUser, setNewStateByUser] = useState<boolean>(false);
   const [salesPersons, setSalesPersons] = useState<any[]>([]);
 
   // Notifications
@@ -61,7 +68,7 @@ export const Vendors: React.FC<{
     billing_address: "",
     delivery_address: "",
     city: "",
-    state: "Maharashtra",
+    state: "",
     pincode: "",
     assigned_sales_person_id: "",
     notes: "",
@@ -81,7 +88,7 @@ export const Vendors: React.FC<{
     billing_address: "",
     delivery_address: "",
     city: "",
-    state: "Maharashtra",
+    state: "",
     pincode: "",
     assigned_sales_person_id: "",
     notes: "",
@@ -108,6 +115,7 @@ export const Vendors: React.FC<{
       if (search) params.append("search", search);
       if (cityFilter) params.append("city", cityFilter);
       if (salesFilter) params.append("sales_person_id", salesFilter);
+      if (statusFilter !== "all") params.append("status", statusFilter);
 
       const res = await apiFetch(`/api/vendors?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -115,6 +123,7 @@ export const Vendors: React.FC<{
       if (res.ok) {
         const json = await res.json();
         setVendors(json.vendors || []);
+        if (json.counts) setCounts(json.counts);
       }
     } catch (err) {
       console.error(err);
@@ -141,7 +150,7 @@ export const Vendors: React.FC<{
   useEffect(() => {
     fetchVendors();
     fetchSalesPersons();
-  }, [cityFilter, salesFilter]);
+  }, [cityFilter, salesFilter, statusFilter]);
 
   // Deep-link initial vendor ID support
   useEffect(() => {
@@ -177,6 +186,7 @@ export const Vendors: React.FC<{
       return;
     }
     setEditingVendor(v);
+    setEditStateByUser(true); // existing party: keep its saved state unless the user changes it
     setEditError(null);
     setEditForm({
       company_name: v.company_name || "",
@@ -187,7 +197,7 @@ export const Vendors: React.FC<{
       billing_address: v.billing_address || "",
       delivery_address: v.delivery_address || v.billing_address || "",
       city: v.city || "",
-      state: v.state || "Maharashtra",
+      state: v.state || "",
       pincode: v.pincode || "",
       assigned_sales_person_id: String(v.assigned_sales_person_id || ""),
       notes: v.notes || "",
@@ -202,13 +212,12 @@ export const Vendors: React.FC<{
 
     if (
       !editForm.company_name.trim() ||
-      !editForm.mobile.trim() ||
       !editForm.billing_address.trim() ||
       !editForm.city.trim() ||
       !editForm.state.trim()
     ) {
       setEditError(
-        "Please fill in all required fields (Party Name, Mobile, Billing Address, City and State).",
+        "Please fill in all required fields (Party Name, Billing Address, City and State).",
       );
       return;
     }
@@ -270,13 +279,12 @@ export const Vendors: React.FC<{
     e.preventDefault();
     if (
       !newVendorForm.company_name.trim() ||
-      !newVendorForm.mobile.trim() ||
       !newVendorForm.billing_address.trim() ||
       !newVendorForm.city.trim() ||
       !newVendorForm.state.trim()
     ) {
       alert(
-        "Please fill in required fields: Party Name, Mobile, Address, City and State.",
+        "Please fill in required fields: Party Name, Address, City and State.",
       );
       return;
     }
@@ -294,6 +302,7 @@ export const Vendors: React.FC<{
       const data = await res.json();
       if (res.ok) {
         setShowAddModal(false);
+        setNewStateByUser(false);
         setNewVendorForm({
           company_name: "",
           mobile: "",
@@ -303,7 +312,7 @@ export const Vendors: React.FC<{
           billing_address: "",
           delivery_address: "",
           city: "",
-          state: "Maharashtra",
+          state: "",
           pincode: "",
           assigned_sales_person_id: "",
           notes: "",
@@ -369,6 +378,29 @@ export const Vendors: React.FC<{
             <span>+ Add New Party</span>
           </button>
         </div>
+      </div>
+
+      {/* Active / Inactive party counts (click to filter) */}
+      <div className="grid grid-cols-3 gap-3">
+        {([
+          { key: "all", label: "Total Parties", value: counts.total, tone: "text-slate-900" },
+          { key: "active", label: "Active", value: counts.active, tone: "text-emerald-700" },
+          { key: "inactive", label: "Inactive", value: counts.inactive, tone: "text-rose-700" },
+        ] as const).map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => setStatusFilter(c.key)}
+            className={`p-3 rounded-xl border text-left transition ${
+              statusFilter === c.key
+                ? "border-amber-500 bg-amber-50/60 shadow-xs"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{c.label}</p>
+            <p className={`text-xl font-bold font-mono mt-0.5 ${c.tone}`}>{c.value}</p>
+          </button>
+        ))}
       </div>
 
       {/* Filter and Search Bar */}
@@ -967,11 +999,10 @@ export const Vendors: React.FC<{
                 {/* Mobile Number */}
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Mobile Number *
+                    Mobile Number
                   </label>
                   <input
                     type="text"
-                    required
                     value={editForm.mobile}
                     onChange={(e) =>
                       setEditForm({ ...editForm, mobile: e.target.value })
@@ -1116,9 +1147,15 @@ export const Vendors: React.FC<{
                     type="text"
                     required
                     value={editForm.city}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, city: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const guess = stateForCity(city);
+                      setEditForm({
+                        ...editForm,
+                        city,
+                        state: !editStateByUser && guess ? guess : editForm.state,
+                      });
+                    }}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-amber-500 focus:outline-hidden"
                     placeholder="e.g. Pune"
                   />
@@ -1129,15 +1166,14 @@ export const Vendors: React.FC<{
                   <label className="block font-semibold text-slate-700 mb-1">
                     State *
                   </label>
-                  <input
-                    type="text"
+                  <StateSelect
                     required
                     value={editForm.state}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, state: e.target.value })
-                    }
+                    onChange={(st) => {
+                      setEditStateByUser(true);
+                      setEditForm({ ...editForm, state: st });
+                    }}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-amber-500 focus:outline-hidden"
-                    placeholder="e.g. Maharashtra"
                   />
                 </div>
 
@@ -1280,11 +1316,10 @@ export const Vendors: React.FC<{
 
                 <div>
                   <label className="block font-semibold mb-1">
-                    Mobile Number *
+                    Mobile Number
                   </label>
                   <input
                     type="text"
-                    required
                     inputMode="numeric"
                     maxLength={10}
                     value={newVendorForm.mobile}
@@ -1378,28 +1413,28 @@ export const Vendors: React.FC<{
                     type="text"
                     required
                     value={newVendorForm.city}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const guess = stateForCity(city);
                       setNewVendorForm({
                         ...newVendorForm,
-                        city: e.target.value,
-                      })
-                    }
+                        city,
+                        state: !newStateByUser && guess ? guess : newVendorForm.state,
+                      });
+                    }}
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold mb-1">State *</label>
-                  <input
-                    type="text"
+                  <StateSelect
                     required
                     value={newVendorForm.state}
-                    onChange={(e) =>
-                      setNewVendorForm({
-                        ...newVendorForm,
-                        state: e.target.value,
-                      })
-                    }
+                    onChange={(st) => {
+                      setNewStateByUser(true);
+                      setNewVendorForm({ ...newVendorForm, state: st });
+                    }}
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                   />
                 </div>

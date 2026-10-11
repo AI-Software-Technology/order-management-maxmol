@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Search, Filter, Plus, Eye, FileText, ChevronLeft, ChevronRight,
   Download, Printer, RefreshCw, X, Check, CheckCircle2, AlertCircle, Building2,
-  RotateCcw, Store, UserCheck, Edit2
+  RotateCcw, Store, UserCheck, Edit2, Trash2
 } from 'lucide-react';
 import { useAuth } from '../store/authStore.js';
+import { confirmAndDelete } from '../lib/deleteApi.js';
 import { OrderStatusBadge } from '../components/StatusBadge.js';
 import { OrderSlipModal } from '../components/OrderSlipModal.js';
 import { EditOrderModal } from '../components/EditOrderModal.js';
@@ -73,6 +74,10 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate, initialSearch = '', 
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleDeleteOrder = async (ord: any) => {
+    if (await confirmAndDelete(`/api/orders/${ord.id}`, `Delete order ${ord.order_number}? Its items and history will be removed. This cannot be undone.`)) fetchOrders();
   };
 
   const fetchOrders = async (currentRange: DateRange = dateRange) => {
@@ -718,6 +723,18 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate, initialSearch = '', 
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
+
+                          {/* Delete: only New / Cancelled orders (server enforces too) */}
+                          {(user?.role_slug === 'super_admin' || hasPermission('orders:delete')) &&
+                            ['NEW', 'CANCELLED'].includes(ord.order_status) && (
+                            <button
+                              onClick={() => handleDeleteOrder(ord)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
+                              title="Delete Order"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
                           {/* Quick Admin Actions if NEW */}
                           {isAdmin && ord.order_status === 'NEW' && (

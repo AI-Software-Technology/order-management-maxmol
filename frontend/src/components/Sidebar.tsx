@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutDashboard, ShoppingCart, Package, Tags, Store, Users, PackageCheck,
-  CheckCircle2, CreditCard, BarChart3, Building, ShieldCheck, FileText, Settings,
+  CheckCircle2, CreditCard, BarChart3, Building, ShieldCheck, FileText,
   LogOut, Droplets, ChevronRight, X, ReceiptText
 } from 'lucide-react';
 import { useAuth } from '../store/authStore.js';
@@ -49,18 +49,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, isOpe
         { id: 'roles', label: 'Roles & Permissions', icon: ShieldCheck, visible: can('roles') },
         { id: 'activity-logs', label: 'Audit Trail / Logs', icon: FileText, visible: can('activity-logs') },
       ]
-    },
-    {
-      title: 'Configuration',
-      items: [
-        { id: 'settings', label: 'System & Demo Reset', icon: Settings, visible: can('settings') },
-      ]
     }
   ];
 
   return (
     <aside className={`
-      fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 shadow-2xl transition-transform duration-200 ease-in-out
+      print:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-slate-950 text-slate-300 flex flex-col border-r border-slate-800 shadow-2xl transition-transform duration-200 ease-in-out
       lg:static lg:w-64 lg:max-w-none lg:shadow-none lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
     `}>
       {/* Brand Header */}

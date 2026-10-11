@@ -18,6 +18,7 @@ import {
   Plus,
   ShieldCheck,
   Edit2,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../store/authStore.js";
 import {
@@ -42,6 +43,7 @@ import { EditOrderModal } from "../components/EditOrderModal.js";
 import { EditPaymentModal } from "../components/EditPaymentModal.js";
 import { apiFetch } from "../lib/api.js";
 import { getToken } from "../lib/session.js";
+import { confirmAndDelete } from "../lib/deleteApi.js";
 
 interface OrderDetailProps {
   orderId: string | number;
@@ -159,7 +161,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   const isProduction = ["super_admin", "admin", "production_team"].includes(
     user?.role_slug || "",
   );
-  const isDispatch = ["super_admin", "admin", "dispatch_team"].includes(
+  const isDispatch = ["super_admin", "admin"].includes(
     user?.role_slug || "",
   );
   const isAccounts = ["super_admin", "admin", "accounts"].includes(
@@ -190,6 +192,15 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
     order.order_status !== "COMPLETED";
 
   // API Call Handlers
+  const handleDeleteOrder = async () => {
+    if (!order) return;
+    const ok = await confirmAndDelete(
+      `/api/orders/${order.id}`,
+      `Delete order ${order.order_number}? Its items and history will be removed. This cannot be undone.`,
+    );
+    if (ok) onNavigate("orders");
+  };
+
   const handleAccept = async () => {
     if (!window.confirm("Accept and approve order for operations?")) return;
     setActionLoading(true);
@@ -429,6 +440,18 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
               >
                 <X className="w-4 h-4" />
                 <span>Cancel</span>
+              </button>
+            )}
+
+          {(user?.role_slug === "super_admin" || hasPermission("orders:delete")) &&
+            ["NEW", "CANCELLED"].includes(order.order_status) && (
+              <button
+                onClick={handleDeleteOrder}
+                disabled={actionLoading}
+                className="px-3.5 py-2 bg-white hover:bg-rose-50 border border-rose-300 text-rose-700 font-bold text-xs rounded-lg transition flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete</span>
               </button>
             )}
 

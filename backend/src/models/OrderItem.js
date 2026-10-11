@@ -13,6 +13,6 @@ module.exports = defineModel('OrderItem', 'order_items', {
   rate: reqNum(),
   line_amount: reqNum(),
   notes: str(),
-  item_colour: str('Golden Yellow'),
+  item_colour: str(''),
   item_availability: str('AVAILABLE'),
 }, [{ order_id: 1 }, { product_id: 1 }]);

@@ -34,20 +34,24 @@ router.get('/dashboard/stats', auth, h(dashboard.stats));
 router.get('/companies', auth, h(company.list));
 router.post('/companies', auth, can('companies:manage'), h(company.create));
 router.put('/companies/:id', auth, can('companies:manage'), h(company.update));
+router.delete('/companies/:id', auth, can('companies:manage'), h(company.remove));
 
 // ----------------------------- BRANDS & CATEGORIES -----------------------------
 router.get('/brands', auth, h(catalog.brands.list));
 router.post('/brands', auth, can('products:manage'), h(catalog.brands.create));
 router.put('/brands/:id', auth, can('products:manage'), h(catalog.brands.update));
+router.delete('/brands/:id', auth, can('products:manage'), h(catalog.brands.remove));
 router.get('/categories', auth, h(catalog.categories.list));
 router.post('/categories', auth, can('products:manage'), h(catalog.categories.create));
 router.put('/categories/:id', auth, can('products:manage'), h(catalog.categories.update));
+router.delete('/categories/:id', auth, can('products:manage'), h(catalog.categories.remove));
 
 // ----------------------------- PRODUCTS -----------------------------
 router.get('/products', auth, h(catalog.listProducts));
 router.get('/products/vendor-last-rate', auth, h(catalog.vendorLastRate));
 router.post('/products', auth, can('products:manage'), h(catalog.createProduct));
 router.put('/products/:id', auth, can('products:manage'), h(catalog.updateProduct));
+router.delete('/products/:id', auth, can('products:manage'), h(catalog.deleteProduct));
 
 // ----------------------------- PARTIES ( VENDORS ) -----------------------------
 router.get('/vendors', auth, h(vendor.list));
@@ -62,6 +66,7 @@ router.get('/orders/:id', auth, h(order.getOne));
 router.post('/orders', auth, can('orders:create'), h(order.create));
 router.put('/orders/:id', auth, h(order.update));
 router.post('/orders/:id/accept', auth, can('orders:approve'), h(order.accept));
+router.delete('/orders/:id', auth, can('orders:delete'), h(order.remove));
 router.post('/orders/:id/cancel', auth, can('orders:cancel'), h(order.cancel));
 router.post('/orders/:id/assign-production', auth, can('orders:approve'), h(order.assignProduction));
 router.post('/orders/:id/complete', auth, can('orders:complete'), h(order.complete));
@@ -127,6 +132,5 @@ router.get('/bills/:id', auth, h(bill.getOne));
 
 // ----------------------------- SETTINGS -----------------------------
 router.get('/settings', auth, h(settings.getSettings));
-router.post('/settings/reset-demo', auth, h(settings.resetDemo));
 
 module.exports = router;

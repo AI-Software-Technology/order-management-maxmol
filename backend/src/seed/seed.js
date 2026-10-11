@@ -97,7 +97,6 @@ async function seedDatabase(force = false) {
   const deepakId = userMap['deepak@lubricantdemo.com'];
   const adminId = userMap['admin@lubricantdemo.com'];
   const prodUserId = userMap['production@lubricantdemo.com'];
-  const dispatchUserId = userMap['dispatch@lubricantdemo.com'];
   const accountsUserId = userMap['accounts@lubricantdemo.com'];
 
   const vendors = demo.buildVendors({ akashId, rahulId, deepakId }).map((v, i) => ({
@@ -274,8 +273,8 @@ async function seedDatabase(force = false) {
     if (cfg.status !== 'NEW') addHistory('Order Accepted', 'NEW', 'ACCEPTED', 'Approved by Operations Admin', adminId);
     if (cfg.prodStatus !== 'NOT_ASSIGNED') addHistory('Production Assigned', 'ACCEPTED', 'PROCESSING', 'Assigned to Plant Formulation Team', adminId);
     if (cfg.prodStatus === 'PRODUCTION_COMPLETED') addHistory('Production Completed', 'PROCESSING', 'READY_FOR_DISPATCH', 'Batch production and QC testing finished', prodUserId);
-    if (cfg.dispStatus !== 'NOT_DISPATCHED') addHistory('Dispatched', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'Consignment loaded on transport vehicle', dispatchUserId);
-    if (cfg.delStatus === 'DELIVERED') addHistory('Delivered', 'OUT_FOR_DELIVERY', 'DELIVERED', 'Customer received and signed proof of delivery', dispatchUserId);
+    if (cfg.dispStatus !== 'NOT_DISPATCHED') addHistory('Dispatched', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'Consignment loaded on transport vehicle', prodUserId);
+    if (cfg.delStatus === 'DELIVERED') addHistory('Delivered', 'OUT_FOR_DELIVERY', 'DELIVERED', 'Customer received and signed proof of delivery', prodUserId);
     if (cfg.status === 'COMPLETED') addHistory('Order Completed', 'DELIVERED', 'COMPLETED', 'Delivery confirmed and full invoice payment reconciled', adminId);
     if (cfg.status === 'CANCELLED') addHistory('Order Cancelled', 'NEW', 'CANCELLED', cfg.cancelReason || 'Cancelled upon request', adminId);
 
@@ -299,7 +298,7 @@ async function seedDatabase(force = false) {
         transport_contact: '+91 22 2844 9900', vehicle_number: d.vehicle, lr_number: d.lr, tracking_number: `TRK-${d.lr}`,
         driver_name: d.driver, driver_mobile: d.driverPhone, dispatch_quantity: d.qty, notes: 'Handling precautions noted',
         items: itemIds.map((itemId) => ({ order_item_id: itemId, quantity: d.qty / itemIds.length })),
-        created_by_id: dispatchUserId, created_at: dateStr,
+        created_by_id: prodUserId, created_at: dateStr,
       });
 
       for (const del of cfg.deliveries || []) {
@@ -309,7 +308,7 @@ async function seedDatabase(force = false) {
           pod_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
           notes: del.notes,
           items: itemIds.map((itemId) => ({ order_item_id: itemId, quantity: del.qty / itemIds.length })),
-          created_by_id: dispatchUserId, created_at: dateStr,
+          created_by_id: prodUserId, created_at: dateStr,
         });
       }
     }
@@ -349,7 +348,6 @@ async function seedDatabase(force = false) {
     { user_id: akashId, role_slug: 'sales_person', title: 'New Order Placed', message: 'Order ORD-10170 has been submitted for Admin approval', type: 'info', order_id: 1 },
     { user_id: adminId, role_slug: 'admin', title: 'Approval Required', message: 'Order ORD-10170 is waiting for review and approval', type: 'warning', order_id: 1 },
     { user_id: prodUserId, role_slug: 'production_team', title: 'New Production Job', message: 'Order ORD-10165 assigned to plant for formulation', type: 'info', order_id: 7 },
-    { user_id: dispatchUserId, role_slug: 'dispatch_team', title: 'Ready for Dispatch', message: 'Order ORD-10162 production completed. Ready for vehicle assignment.', type: 'success', order_id: 10 },
     { user_id: accountsUserId, role_slug: 'accounts', title: 'Payment Verification Needed', message: 'Advance payment for ORD-10171 received via UPI', type: 'info', order_id: 2 },
   ]).map((n) => ({ ...n, is_read: 0, created_at: iso }));
 
