@@ -96,17 +96,17 @@ exports.vendorLastRate = async (req, res) => {
 };
 
 exports.createProduct = async (req, res) => {
-  const { name, brand_id, category_id, sku, unit, min_order_qty, standard_rate, description, image_url, item_colour, status } = req.body;
+  const { name, brand_id, category_id, unit, min_order_qty, standard_rate, description, image_url, item_colour, status } = req.body;
   const cleanUnit = (unit || '').toString().trim();
-  if (!name || !brand_id || !category_id || !sku || !cleanUnit) {
-    return res.status(400).json({ error: 'Name, Brand, Category, SKU and Packing Unit are required' });
+  if (!name || !brand_id || !category_id  || !cleanUnit) {
+    return res.status(400).json({ error: 'Name, Brand, Category,and Packing Unit are required' });
   }
   if (await Product.exists({ sku })) {
     return res.status(400).json({ error: `A product with SKU "${sku}" already exists` });
   }
 
   const product = await Product.insert({
-    name, brand_id: Number(brand_id), category_id: Number(category_id), sku, unit: cleanUnit,
+    name, brand_id: Number(brand_id), category_id: Number(category_id),  unit: cleanUnit,
     min_order_qty: Number(min_order_qty) || 1, standard_rate: Number(standard_rate) || 0,
     description: description || '', image_url: image_url || '',
     item_colour: item_colour || 'Golden Yellow', status: status || 'active',

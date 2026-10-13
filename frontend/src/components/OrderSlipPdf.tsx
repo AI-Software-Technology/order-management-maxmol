@@ -234,7 +234,6 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
               <Text style={[s.thText, s.cIdx]}>#</Text>
               <Text style={[s.thText, s.cImg, { textAlign: 'center' }]}>IMAGE</Text>
               <Text style={[s.thText, s.cName]}>PRODUCT</Text>
-              <Text style={[s.thText, s.cSku]}>SKU</Text>
               <Text style={[s.thText, s.cQty]}>QTY</Text>
               <Text style={[s.thText, s.cUnit]}>UNIT</Text>
               <Text style={[s.thText, s.cRate]}>{isNonGst ? 'RATE' : 'RATE (INCL. GST)'}</Text>
@@ -243,6 +242,7 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
 
             {items.map((item, idx) => {
               const img = assets.items[item.id];
+              console.log(item)
               return (
                 <View key={item.id} style={[s.tr, idx % 2 ? s.trAlt : {}]} wrap={false}>
                   <Text style={[s.td, s.cIdx, { color: C.muted }]}>{idx + 1}</Text>
@@ -250,10 +250,10 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
                     {img ? <Image src={img} style={s.thumb} /> : <View style={s.thumbEmpty} />}
                   </View>
                   <View style={[s.td, s.cName]}>
-                    <Text style={s.itemName}>{item.product_name}{item.unit ? ` – ${item.unit}` : ''}</Text>
-                    {item.notes ? <Text style={s.itemNote}>{item.notes}</Text> : null}
+                    <Text style={s.itemName}>{item.product_name}</Text> 
+                    {item.item_colour ? <Text style={s.itemNote}>{item.item_colour}</Text> : null}
                   </View>
-                  <Text style={[s.td, s.cSku, { color: C.muted }]}>{item.sku}</Text>
+                
                   <Text style={[s.td, s.cQty, { fontWeight: 700, color: C.ink }]}>{item.quantity}</Text>
                   <Text style={[s.td, s.cUnit]}>{item.unit}</Text>
                   <Text style={[s.td, s.cRate]}>{money(item.rate)}</Text>

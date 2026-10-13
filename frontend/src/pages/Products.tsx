@@ -316,7 +316,7 @@ export const Products: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-900 text-xs">
-                        {p.name} {p.unit ? `– ${p.unit}` : ''}
+                        {p.name} 
                       </h4>
                       <p className="text-[10px] text-slate-500 font-mono mt-0.5">{p.sku} • {p.brand_name}</p>
                       <div className="flex items-center gap-1.5 mt-1">
@@ -368,7 +368,7 @@ export const Products: React.FC = () => {
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="py-3 px-4">Image</th>
                 <th className="py-3 px-4">Product Name</th>
-                <th className="py-3 px-4">SKU Code</th>
+        
                 <th className="py-3 px-4">Brand</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Item Colour</th>
@@ -409,10 +409,10 @@ export const Products: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <p className="font-bold text-slate-900">{p.name} {p.unit ? `– ${p.unit}` : ''}</p>
+                      <p className="font-bold text-slate-900">{p.name} </p>
                       <p className="text-[11px] text-slate-400 truncate max-w-xs">{p.description || 'Standard formulation'}</p>
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">{p.sku}</td>
+              
                     <td className="py-3 px-4 text-slate-700 font-medium">{p.brand_name}</td>
                     <td className="py-3 px-4 text-slate-600">{p.category_name}</td>
                     <td className="py-3 px-4">
@@ -602,8 +602,8 @@ export const Products: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 gap-3">
+                {/* <div>
                   <label className="block font-semibold mb-1">SKU Code *</label>
                   <input
                     type="text"
@@ -613,7 +613,7 @@ export const Products: React.FC = () => {
                     placeholder="e.g. UD-5W30-SYN"
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono uppercase"
                   />
-                </div>
+                </div> */}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">

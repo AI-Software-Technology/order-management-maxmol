@@ -803,7 +803,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                           <th className="py-2.5 px-3">#</th>
                           <th className="py-2.5 px-3">Product Image</th>
                           <th className="py-2.5 px-3">Product Description</th>
-                          <th className="py-2.5 px-3">SKU</th>
+                     
                           <th className="py-2.5 px-3 text-right">
                             Ordered Qty
                           </th>
@@ -851,7 +851,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                             <td className="py-3 px-3">
                               <p className="font-bold text-slate-900">
                                 {it.product_name}{" "}
-                                {it.unit ? `– ${it.unit}` : ""}
+                               
                               </p>
                               <span className="text-[11px] text-slate-500">
                                 {it.brand_name} • {it.category_name}
@@ -867,9 +867,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                                 </p>
                               )}
                             </td>
-                            <td className="py-3 px-3 font-mono text-slate-600">
-                              {it.sku}
-                            </td>
+                           
                             <td className="py-3 px-3 text-right font-bold text-slate-800">
                               {it.quantity} {it.unit}
                             </td>

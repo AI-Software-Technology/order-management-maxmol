@@ -233,15 +233,16 @@ const handleAddSelected = () => {
     });
   };
 
-  const handleRowRateChange = (index: number, rate: number) => {
-    const safeRate = Math.max(0, rate || 0);
-    setProductRows(prev => {
-      const next = [...prev];
-      next[index].rate = safeRate;
-      next[index].line_amount = next[index].quantity * safeRate;
-      return next;
-    });
-  };
+const handleRowRateChange = (index: number, rate: string) => {
+  const safeRate = rate === '' ? 0 : Math.max(0, Number(rate) || 0);
+
+  setProductRows(prev => {
+    const next = [...prev];
+    next[index].rate = safeRate;
+    next[index].line_amount = next[index].quantity * safeRate;
+    return next;
+  });
+};
 
   const handleRowColourChange = (index: number, colour: string) => {
     setProductRows(prev => {
@@ -915,15 +916,13 @@ const toggleSelectAll = () => {
                         <td className="py-3 px-3">
                           <div className="relative">
                             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={row.rate}
-                              onChange={(e) => handleRowRateChange(idx, Number(e.target.value))}
-                              className="w-full pl-6 pr-2 py-1.5 bg-white border border-amber-300 rounded font-mono font-bold text-right text-slate-900 focus:ring-1 focus:ring-amber-500"
-                              placeholder="Enter rate"
-                            />
+<input
+  type="text"
+  value={row.rate === 0 ? '' : row.rate}
+  onChange={(e) => handleRowRateChange(idx, e.target.value)}
+  className="w-full pl-6 pr-2 py-1.5 bg-white border border-amber-300 rounded font-mono font-bold text-right text-slate-900 focus:ring-1 focus:ring-amber-500"
+  placeholder="Enter rate"
+/>
                           </div>
                           <p className="text-[9px] text-slate-400 text-right mt-0.5">Custom negotiable rate</p>
                         </td>
@@ -1019,7 +1018,7 @@ const toggleSelectAll = () => {
             {/* Left: Simplified Delivery Destination & Contact */}
             <div className="space-y-4 text-xs">
               <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-800">Delivery Destination Address *</label>
+                <label className="font-bold text-slate-800">Transport Address *</label>
                 <label className="flex items-center gap-1.5 text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1291,7 +1290,7 @@ const toggleSelectAll = () => {
                   onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
                 />
                 <div className="overflow-hidden flex-1">
-                  <p className="font-bold text-slate-900 text-xs truncate">{p.name} {p.unit ? `– ${p.unit}` : ''}</p>
+                  <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
                   <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
                     <span>{p.sku}</span><span>•</span><span>{p.brand_name}</span>
                   </div>
@@ -1321,7 +1320,7 @@ const toggleSelectAll = () => {
               </th>
               <th className="py-2.5 px-3">Image</th>
               <th className="py-2.5 px-3">Product Name</th>
-              <th className="py-2.5 px-3">SKU</th>
+             
               <th className="py-2.5 px-3">Brand</th>
               <th className="py-2.5 px-3">Category</th>
               <th className="py-2.5 px-3">Unit</th>
@@ -1375,7 +1374,7 @@ const toggleSelectAll = () => {
                       </p>
                       <p className="text-[10px] text-slate-400 truncate max-w-xs">{p.description || 'Standard formulation'}</p>
                     </td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{p.sku}</td>
+                
                     <td className="py-2.5 px-3 text-slate-700">{p.brand_name}</td>
                     <td className="py-2.5 px-3 text-slate-600">{p.category_name}</td>
                     <td className="py-2.5 px-3">
