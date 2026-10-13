@@ -20,6 +20,7 @@ export interface EditProductRow {
   product_id: number;
   product_name: string;
   sku: string;
+
   unit: string;
   item_colour?: string;
   quantity: number;
@@ -63,6 +64,12 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
   const [orderNotes, setOrderNotes] = useState<string>('');
   const [paymentTerms, setPaymentTerms] = useState<string>('Credit 30 Days');
+
+
+  const [transportName, setTransportName] = useState<string>('');
+  const [transportAddress, setTransportAddress] = useState<string>('');
+  const [bookingStation, setBookingStation] = useState<string>('');
+  const [transportContactNumber, setTransportContactNumber] = useState<string>('');
 
   // Product Selection Modal
   const [showProductPicker, setShowProductPicker] = useState<boolean>(false);
@@ -118,6 +125,12 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           setRequiredDeliveryDate(ord.required_delivery_date || '');
           setSpecialInstructions(ord.special_instructions || '');
           setOrderNotes(ord.notes || '');
+
+
+          setTransportName(ord.transportName || '');
+          setTransportAddress(ord.transportAddress || '');
+          setBookingStation(ord.booking_station || '');
+          setTransportContactNumber(ord.transport_contact_number || '');
           setPaymentTerms(ord.payment_terms || 'Credit 30 Days');
 
           // Map items to product rows
@@ -403,11 +416,10 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
               {/* Delivered Order Notice */}
               {isDelivered && (
-                <div className={`p-3 rounded-xl border flex items-start gap-3 ${
-                  isDeliveredBlocked
+                <div className={`p-3 rounded-xl border flex items-start gap-3 ${isDeliveredBlocked
                     ? 'bg-rose-50 border-rose-300 text-rose-900'
                     : 'bg-amber-50 border-amber-300 text-amber-900'
-                }`}>
+                  }`}>
                   <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold">Order Delivered Status Notice</p>
@@ -467,6 +479,77 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 </div>
               </div>
 
+
+                    {/* Transport Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                {/* Transport Name */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                    Transport Name
+                  </label>
+                  <input
+                    type="text"
+                    value={transportName}
+                    onChange={(e) => setTransportName(e.target.value)}
+                    disabled={isDeliveredBlocked}
+                    placeholder="Enter transport name"
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+                
+                {/* Transport Address */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <MapPin className="w-
+3.5 h-3.5 text-amber-600" />
+                    Transport Address
+                  </label>
+                  <input
+                    type="text"
+                    value={transportAddress}
+                    onChange={(e) => setTransportAddress(e.target.value)}
+                    disabled={isDeliveredBlocked}
+                    placeholder="Enter transport address"
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+                
+                {/* Booking Station */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                    Booking Station
+                  </label>
+                  <input
+                    type="text"
+                    value={bookingStation}
+                    onChange={(e) => setBookingStation(e.target.value)}
+                    disabled={isDeliveredBlocked}
+                    placeholder="Enter booking station"
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+                
+                {/* Transport Contact Number */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5
+  text-amber-600" />
+                    Transport Contact Number
+                  </label>
+                  <input
+                    type="text"
+                    value={transportContactNumber}
+                    onChange={(e) => setTransportContactNumber(e.target.value)}
+                    disabled={isDeliveredBlocked}
+                    placeholder="Enter transport contact number"
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+
               {/* Section 2: Products & Selling Rate */}
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -486,22 +569,20 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTaxType('GST_18')}
-                        className={`px-3 py-1.5 rounded-md font-bold text-xs transition ${
-                          taxType === 'GST_18'
+                        className={`px-3 py-1.5 rounded-md font-bold text-xs transition ${taxType === 'GST_18'
                             ? 'bg-amber-500 text-slate-950 shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                          }`}
                       >
                         GST 18%
                       </button>
                       <button
                         type="button"
                         onClick={() => setTaxType('NON_GST')}
-                        className={`px-3 py-1.5 rounded-md font-bold text-xs transition ${
-                          taxType === 'NON_GST'
+                        className={`px-3 py-1.5 rounded-md font-bold text-xs transition ${taxType === 'NON_GST'
                             ? 'bg-slate-800 text-white shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                          }`}
                       >
                         Non-GST
                       </button>
@@ -648,9 +729,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
                     <div className="border-l border-slate-700 pl-6">
                       <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Recalculated Balance</span>
-                      <span className={`font-mono text-base font-black ${
-                        newPendingAmount > 0 ? 'text-rose-400' : 'text-emerald-400'
-                      }`}>
+                      <span className={`font-mono text-base font-black ${newPendingAmount > 0 ? 'text-rose-400' : 'text-emerald-400'
+                        }`}>
                         ₹{newPendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     </div>

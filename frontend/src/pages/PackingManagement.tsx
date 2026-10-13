@@ -28,16 +28,32 @@ const printPackingSlip = (order: any) => {
   const title = `Packing-Slip-${order.order_number}`;
 
   const rows = items.map((it: any, idx: number) => `
-    <tr>
-      <td class="c">${idx + 1}</td>
-      <td><b>${esc(it.product_name)}</b></td>
-      <td>${esc(it.sku)}</td>
-      <td>${esc(it.brand_name)}</td>
-      <td>${esc(it.item_colour || '-')}</td>
-      <td>${esc(it.unit)}</td>
-      <td class="r"><b>${esc(it.quantity)}</b></td>
-      <td class="c"><span class="chk"></span></td>
-    </tr>`).join('');
+  <tr>
+    <td class="c">${idx + 1}</td>
+    <td class="img-cell">
+      ${it.product_image
+      ? `<img
+               class="product-img"
+               src="${esc(it.product_image)}"
+               alt="${esc(it.product_name)}"
+             />`
+      : '<div class="no-img">No Image</div>'
+    }
+    </td>
+    <td>
+      <b>${esc(it.product_name || '-')}</b>
+    </td>
+    <td>${esc(it.brand_name || '-')}</td>
+    <td>
+      <span class="colour-tag">
+        ${esc(it.item_colour || '-')}
+      </span>
+    </td>
+    <td>${esc(it.unit || '-')}</td>
+    <td class="r"><b>${esc(it.quantity ?? 0)}</b></td>
+    <td class="c"><span class="chk"></span></td>
+  </tr>
+`).join('');
 
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"><title>${esc(title)}</title>
@@ -57,6 +73,59 @@ const printPackingSlip = (order: any) => {
   th { background: #eee; }
   tr { page-break-inside: avoid; }
   .c { text-align: center; } .r { text-align: right; }
+.product-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.img-cell {
+  width: 65px;
+  text-align: center;
+}
+
+.no-img {
+  width: 48px;
+  height: 48px;
+  border: 1px dashed #aaa;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  color: #777;
+}
+
+.colour-tag {
+  display: inline-block;
+  padding: 3px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  background: #f5f5f5;
+  color: #222;
+}
+
+td {
+  vertical-align: middle;
+}
+
+@media print {
+  .product-img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}
   .chk { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; }
   .sign { display: flex; justify-content: space-between; gap: 24px; margin-top: 60px; }
   .sign div { flex: 1; text-align: center; border-top: 1px solid #000; padding-top: 4px; font-weight: 700; }
@@ -91,10 +160,16 @@ const printPackingSlip = (order: any) => {
 
   <table>
     <thead>
-      <tr>
-        <th class="c" style="width:28px">#</th><th>Product</th><th>SKU</th><th>Brand</th>
-        <th>Colour</th><th>Pack Size</th><th class="r">Qty</th><th class="c" style="width:50px">Packed</th>
-      </tr>
+<tr>
+  <th class="c" style="width:28px">#</th>
+  <th class="c" style="width:65px">Image</th>
+  <th>Product</th>
+  <th>Brand</th>
+  <th>Colour</th>
+  <th>Pack Size</th>
+  <th class="r">Qty</th>
+  <th class="c" style="width:50px">Packed</th>
+</tr>
     </thead>
     <tbody>
       ${rows}
@@ -649,9 +724,9 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm truncate" title={ord.vendor_name}>{ord.vendor_name}</h3>
-                    <p className="text-md text-slate-900 font-bold mt-0.5 truncate">
-                      Sales Rep: {ord.sales_person_name} • Target Date: {ord.required_delivery_date || 'Standard'}
+                    <h3 className="font-bold text-slate-900 text-md truncate" title={ord.vendor_name}>{ord.vendor_name}</h3>
+                    <p className="text-md text-slate-900 mt-0.5 truncate">
+                      Sales Rep: <span className="font-bold">{ord.sales_person_name}</span> • Target Date: {ord.required_delivery_date || 'Standard'}
                     </p>
                     {isDelivered && ord.delivered_by_name && (
                       <p className="text-[11px] text-emerald-700 font-semibold mt-1">
@@ -680,9 +755,9 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                             />
                             <div className="overflow-hidden">
                               <p className="text-xs font-semibold text-slate-800 truncate" title={it.product_name}>
-                                {it.product_name} {it.unit ? `– ${it.unit}` : ''}
+                                {it.product_name}
                               </p>
-                              <p className="text-[10px] text-slate-500 font-mono">{it.sku} • {it.unit}</p>
+                              <p className="text-[10px] text-slate-500 font-mono"> {it.unit}</p>
                             </div>
                           </div>
 
@@ -787,7 +862,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                         }}
                       />
                       <div>
-                        <p className="font-bold text-slate-900 text-xs">{it.product_name} {it.unit ? `– ${it.unit}` : ''}</p>
+                        <p className="font-bold text-slate-900 text-xs">{it.product_name}</p>
                         <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
                           <span>SKU: {it.sku}</span>
                           <span>•</span>
@@ -799,7 +874,11 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                           )}
                         </div>
                         <p className="text-xs font-bold text-slate-800 mt-1">
-                          Ordered Quantity: <span className="text-amber-600 font-mono">{it.quantity} {it.unit}</span>
+                          Ordered Quantity: <span className="text-amber-600 font-mono">{it.quantity} </span>
+                          Unit: <span className="text-amber-600 font-mono">{it.unit} </span>
+
+
+
                         </p>
                       </div>
                     </div>

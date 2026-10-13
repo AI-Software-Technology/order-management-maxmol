@@ -5,7 +5,14 @@ module.exports = defineModel('Order', 'orders', {
   company_id: reqNum(),
   vendor_id: reqNum(),
   sales_person_id: reqNum(),
+  transportName: str(),
 
+
+  transportName: str(),
+  transportAddress: str(),
+  booking_station: str(),
+  transport_contact_number: str(),
+  
   order_status: str('NEW'),
   production_status: str('NOT_ASSIGNED'),
   packing_status: str('PENDING_PACKING'),

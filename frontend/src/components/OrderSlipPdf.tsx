@@ -54,6 +54,8 @@ const s = StyleSheet.create({
   pill: { marginTop: 3, paddingVertical: 2, paddingHorizontal: 7, borderRadius: 10, fontSize: 7, fontWeight: 700, letterSpacing: 0.6 },
 
   // Party / delivery
+  oneCol: { marginTop: 8, borderWidth: 1, borderColor: C.text, borderRadius: 4, backgroundColor: C.softer },
+  oneColView: { padding: 7, borderWidth: 1, borderColor: C.text, borderRadius: 4, backgroundColor: C.softer },
   twoCol: { flexDirection: 'row', marginTop: 8, borderWidth: 1, borderColor: C.text, borderRadius: 4, backgroundColor: C.softer },
   colLeft: { flex: 1, padding: 7 },
   colRight: { flex: 1, padding: 7, borderLeftWidth: 1, borderLeftColor: C.text },
@@ -69,14 +71,13 @@ const s = StyleSheet.create({
   tr: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.text, paddingVertical: 3, borderTopWidth: 1, borderTopColor: C.text },
   trAlt: { backgroundColor: C.softer, borderWidth: 1, borderColor: C.text, },
   td: { paddingHorizontal: 4, fontSize: 8 },
-  cIdx: { width: '5%', textAlign: 'center' },
-  cImg: { width: '8%', alignItems: 'center' },
-  cName: { width: '31%' },
-  cSku: { width: '13%' },
-  cQty: { width: '8%', textAlign: 'right' },
-  cUnit: { width: '8%' },
-  cRate: { width: '12%', textAlign: 'right' },
-  cAmt: { width: '15%', textAlign: 'right' },
+cIdx: { width: '5%', textAlign: 'center' },
+cImg: { width: '8%', alignItems: 'center' },
+cName: { width: '34%' },
+cQty: { width: '8%', textAlign: 'center' },
+cUnit: { width: '8%', textAlign: 'center' },
+cRate: { width: '17%', textAlign: 'right' },
+cAmt: { width: '20%', textAlign: 'right' },
   thumb: { width: 24, height: 24, borderRadius: 3, borderWidth: 1, borderColor: C.line, objectFit: 'cover' },
   thumbEmpty: { width: 24, height: 24, borderRadius: 3, borderWidth: 1, borderColor: C.line, backgroundColor: C.soft },
   itemName: { fontWeight: 700, color: C.ink },
@@ -224,6 +225,19 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
               <Text style={s.line}><Text style={s.bold}>Payment Terms: </Text>{order.payment_terms}</Text>
               {order.special_instructions ? (
                 <Text style={s.note}><Text style={s.bold}>Special Notes: </Text>{order.special_instructions}</Text>
+              ) : null}
+            </View>
+          </View>
+          <View style={s.oneCol} wrap={false}>
+            <View style={s.oneColView}>
+              {(order.transportName || order.booking_station || order.transport_contact_number || order.transportAddress) ? (
+                <>
+                  <Text style={[s.label, { marginTop: 4 }]}>TRANSPORT DETAILS</Text>
+                  {order.transportName ? <Text style={s.line}><Text style={s.bold}>Transport: </Text>{order.transportName}</Text> : null}
+                  {order.booking_station ? <Text style={s.line}><Text style={s.bold}>Booking Station: </Text>{order.booking_station}</Text> : null}
+                  {order.transport_contact_number ? <Text style={s.line}><Text style={s.bold}>Contact: </Text>{order.transport_contact_number}</Text> : null}
+                  {order.transportAddress ? <Text style={s.line}><Text style={s.bold}>Address: </Text>{order.transportAddress}</Text> : null}
+                </>
               ) : null}
             </View>
           </View>

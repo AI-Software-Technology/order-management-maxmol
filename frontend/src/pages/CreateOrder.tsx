@@ -73,12 +73,17 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
   const [showProductModal, setShowProductModal] = useState<boolean>(false);
   const [productSearchTerm, setProductSearchTerm] = useState<string>('');
   const [zoomImage, setZoomImage] = useState<string | null>(null);
-const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   // Step 4: Delivery Details (Payment collection is separate!)
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [sameAsVendorAddress, setSameAsVendorAddress] = useState<boolean>(true);
   const [contactPerson, setContactPerson] = useState<string>('');
   const [contactNumber, setContactNumber] = useState<string>('');
+  const [transportName, setTransportName] = useState<string>('');
+  const [transportAddress, setTransportAddress] = useState<string>('');
+  const [bookingStation, setBookingStation] = useState<string>('');
+  const [transportContactNumber, setTransportContactNumber] = useState<string>('');
+
   const [orderDeliveryDate, setOrderDeliveryDate] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
   const [orderNotes, setOrderNotes] = useState<string>('');
@@ -141,45 +146,45 @@ const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=120&auto=format&fit=crop&q=80';
 
-const buildRow = (prod: Product): SelectedProductRow => {
-  const initialRate = prod.standard_rate || 0;
-  return {
-    product_id: prod.id,
-    product_name: prod.name,
-    sku: prod.sku,
-    brand: prod.brand_name || '',
-    category: prod.category_name || '',
-    unit: prod.unit,
-    image_url: prod.image_url || PLACEHOLDER_IMG,
-    item_colour: prod.item_colour || '',
-    quantity: 0,
-    rate: initialRate,
-    line_amount: 0,
-    required_delivery_date: orderDeliveryDate || '',
-    notes: ''
+  const buildRow = (prod: Product): SelectedProductRow => {
+    const initialRate = prod.standard_rate || 0;
+    return {
+      product_id: prod.id,
+      product_name: prod.name,
+      sku: prod.sku,
+      brand: prod.brand_name || '',
+      category: prod.category_name || '',
+      unit: prod.unit,
+      image_url: prod.image_url || PLACEHOLDER_IMG,
+      item_colour: prod.item_colour || '',
+      quantity: 0,
+      rate: initialRate,
+      line_amount: 0,
+      required_delivery_date: orderDeliveryDate || '',
+      notes: ''
+    };
   };
-};
 
-const closeProductModal = () => {
-  setShowProductModal(false);
-  setProductSearchTerm('');
-  setSelectedIds([]);
-};
+  const closeProductModal = () => {
+    setShowProductModal(false);
+    setProductSearchTerm('');
+    setSelectedIds([]);
+  };
 
-const toggleSelect = (id: number) =>
-  setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+  const toggleSelect = (id: number) =>
+    setSelectedIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
 
-const handleAddSelected = () => {
-  if (selectedIds.length === 0) return;
-  setProductRows(prev => {
-    const have = new Set(prev.map(r => r.product_id));
-    const toAdd = products
-      .filter(p => selectedIds.includes(p.id) && !have.has(p.id))
-      .map(buildRow);
-    return [...prev, ...toAdd];
-  });
-  closeProductModal();
-};
+  const handleAddSelected = () => {
+    if (selectedIds.length === 0) return;
+    setProductRows(prev => {
+      const have = new Set(prev.map(r => r.product_id));
+      const toAdd = products
+        .filter(p => selectedIds.includes(p.id) && !have.has(p.id))
+        .map(buildRow);
+      return [...prev, ...toAdd];
+    });
+    closeProductModal();
+  };
   // When a product is selected from the Searchable Product Selector Modal
   const handleSelectProduct = (prod: Product) => {
     // Check if already in order
@@ -234,17 +239,17 @@ const handleAddSelected = () => {
     });
   };
 
-const handleRowRateChange = (index: number, rate: string) => {
-  const cleaned = rate.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
-  const safeRate = cleaned === '' || cleaned === '.' ? 0 : Math.max(0, Number(cleaned) || 0);
+  const handleRowRateChange = (index: number, rate: string) => {
+    const cleaned = rate.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
+    const safeRate = cleaned === '' || cleaned === '.' ? 0 : Math.max(0, Number(cleaned) || 0);
 
-  setProductRows(prev => {
-    const next = [...prev];
-    next[index].rate = safeRate;
-    next[index].line_amount = next[index].quantity * safeRate;
-    return next;
-  });
-};
+    setProductRows(prev => {
+      const next = [...prev];
+      next[index].rate = safeRate;
+      next[index].line_amount = next[index].quantity * safeRate;
+      return next;
+    });
+  };
 
   const handleRowColourChange = (index: number, colour: string) => {
     setProductRows(prev => {
@@ -260,12 +265,12 @@ const handleRowRateChange = (index: number, rate: string) => {
   // This rule applies to both GST and Non-GST orders.
   const grandTotal = Math.round(productRows.reduce((acc, row) => acc + (row.line_amount || 0), 0) * 100) / 100;
   const isNonGst = taxType === 'NON_GST';
-  
+
   // Taxable subtotal & GST breakdown
   const subtotal = isNonGst
     ? grandTotal
     : Math.round((grandTotal / 1.18) * 100) / 100;
-  
+
   const taxRate = isNonGst ? 0 : 18.0;
   const taxAmount = isNonGst
     ? 0
@@ -289,15 +294,15 @@ const handleRowRateChange = (index: number, rate: string) => {
   });
 
   const addedIds = new Set(productRows.map(r => r.product_id));
-const selectable = filteredProducts.filter(p => !addedIds.has(p.id));
-const allSelected = selectable.length > 0 && selectable.every(p => selectedIds.includes(p.id));
+  const selectable = filteredProducts.filter(p => !addedIds.has(p.id));
+  const allSelected = selectable.length > 0 && selectable.every(p => selectedIds.includes(p.id));
 
-const toggleSelectAll = () => {
-  const ids = selectable.map(p => p.id);
-  setSelectedIds(prev =>
-    allSelected ? prev.filter(id => !ids.includes(id)) : Array.from(new Set([...prev, ...ids]))
-  );
-};
+  const toggleSelectAll = () => {
+    const ids = selectable.map(p => p.id);
+    setSelectedIds(prev =>
+      allSelected ? prev.filter(id => !ids.includes(id)) : Array.from(new Set([...prev, ...ids]))
+    );
+  };
   // Inline Vendor Creation
   const handleSaveNewVendor = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -366,6 +371,11 @@ const toggleSelectAll = () => {
         delivery_address: deliveryAddress,
         delivery_contact_person: contactPerson,
         delivery_contact_number: contactNumber,
+        transportName: transportName,
+        transportAddress: transportAddress,
+        booking_station: bookingStation,
+        transport_contact_number: transportContactNumber,
+
         required_delivery_date: orderDeliveryDate || null,
         special_instructions: specialInstructions,
         notes: orderNotes,
@@ -467,21 +477,19 @@ const toggleSelectAll = () => {
                 key={s.num}
                 type="button"
                 onClick={() => { if (step <= 4) setStep(s.num); }}
-                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${
-                  isCurrent
-                    ? 'border-amber-500 bg-amber-50/50 shadow-xs'
-                    : isDone
+                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all ${isCurrent
+                  ? 'border-amber-500 bg-amber-50/50 shadow-xs'
+                  : isDone
                     ? 'border-emerald-200 bg-emerald-50/30'
                     : 'border-slate-100 bg-slate-50/40 opacity-70'
-                }`}
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  isCurrent
-                    ? 'bg-amber-500 text-slate-950 font-bold'
-                    : isDone
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isCurrent
+                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  : isDone
                     ? 'bg-emerald-600 text-white font-bold'
                     : 'bg-slate-200 text-slate-500'
-                }`}>
+                  }`}>
                   {isDone ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 </div>
                 <div className="overflow-hidden">
@@ -515,11 +523,10 @@ const toggleSelectAll = () => {
                 <div
                   key={c.id}
                   onClick={() => setSelectedCompanyId(c.id)}
-                  className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${
-                    isSelected
-                      ? 'border-amber-500 bg-amber-50/30 shadow-md ring-2 ring-amber-400/20'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
+                  className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${isSelected
+                    ? 'border-amber-500 bg-amber-50/30 shadow-md ring-2 ring-amber-400/20'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -622,11 +629,10 @@ const toggleSelectAll = () => {
                   <div
                     key={v.id}
                     onClick={() => setSelectedVendorId(v.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${
-                      isSelected
-                        ? 'border-amber-500 bg-amber-50/30 shadow-md ring-2 ring-amber-400/20'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between space-y-3 ${isSelected
+                      ? 'border-amber-500 bg-amber-50/30 shadow-md ring-2 ring-amber-400/20'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
                   >
                     <div>
                       <div className="flex items-center justify-between">
@@ -713,22 +719,20 @@ const toggleSelectAll = () => {
               <button
                 type="button"
                 onClick={() => setTaxType('GST_18')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                  taxType === 'GST_18'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${taxType === 'GST_18'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
               >
                 <span>GST (18%)</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTaxType('NON_GST')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                  taxType === 'NON_GST'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                }`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${taxType === 'NON_GST'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
               >
                 <span>Non-GST</span>
               </button>
@@ -923,14 +927,14 @@ const toggleSelectAll = () => {
                         <td className="py-3 px-3">
                           <div className="relative">
                             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-<input
-  type="text"
-  inputMode="decimal"
-  value={row.rate === 0 ? '' : row.rate}
-  onChange={(e) => handleRowRateChange(idx, e.target.value)}
-  className="w-full pl-6 pr-2 py-1.5 bg-white border border-amber-300 rounded font-mono font-bold text-right text-slate-900 focus:ring-1 focus:ring-amber-500"
-  placeholder="Enter rate"
-/>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={row.rate === 0 ? '' : row.rate}
+                              onChange={(e) => handleRowRateChange(idx, e.target.value)}
+                              className="w-full pl-6 pr-2 py-1.5 bg-white border border-amber-300 rounded font-mono font-bold text-right text-slate-900 focus:ring-1 focus:ring-amber-500"
+                              placeholder="Enter rate"
+                            />
                           </div>
                           <p className="text-[9px] text-slate-400 text-right mt-0.5">Custom negotiable rate</p>
                         </td>
@@ -1026,7 +1030,7 @@ const toggleSelectAll = () => {
             {/* Left: Simplified Delivery Destination & Contact */}
             <div className="space-y-4 text-xs">
               <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-800">Transport Address *</label>
+                <label className="font-bold text-slate-800">Delivery Destination Address *</label>
                 <label className="flex items-center gap-1.5 text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1074,9 +1078,59 @@ const toggleSelectAll = () => {
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                   />
                 </div>
+
+                <div>
+                  <label className="block font-semibold mb-1">Transporter Name</label>
+                  <input
+                    type="text"
+                    value={transportName}
+                    onChange={(e) => setTransportName(e.target.value)}
+                    placeholder="Transport company name"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Transporter Contact</label>
+                  <input
+                    type="text"
+                    value={transportContactNumber}
+                    onChange={(e) => setTransportContactNumber(e.target.value)}
+                    placeholder="Transporter phone / WhatsApp"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Booking Station</label>
+                  <input
+                    type="text"
+                    value={bookingStation}
+                    onChange={(e) => setBookingStation(e.target.value)}
+                    placeholder="Booking station name"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Transporter Address</label>
+                  <input
+                    type="text"
+                    value={transportAddress}
+                    onChange={(e) => setTransportAddress(e.target.value)}
+                    placeholder="Transporter address"
+
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                  />
+
+
+                </div>
               </div>
 
-              <div>
+              {/* Transport Details */}
+
+            </div>
+            <div>
+              <div className=" gap-3">
+
+
                 <label className="block font-semibold mb-1">Order Remarks / Notes (Optional)</label>
                 <textarea
                   rows={2}
@@ -1085,6 +1139,7 @@ const toggleSelectAll = () => {
                   placeholder="Additional commercial notes, delivery guidelines, etc."
                   className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
                 />
+
               </div>
             </div>
 
@@ -1221,103 +1276,36 @@ const toggleSelectAll = () => {
       )}
 
       {/* SEARCHABLE PRODUCT SELECTOR MODAL (Requirement 2) */}
-  {/* SEARCHABLE MULTI-SELECT PRODUCT MODAL */}
-{showProductModal && (
-  <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
-      <div className="flex items-center justify-between border-b pb-3">
-        <div>
-          <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-            <Package className="w-5 h-5 text-amber-500" />
-            Select Lubricant Products
-          </h3>
-          <p className="text-xs text-slate-500">Tick multiple products, then add them all at once</p>
-        </div>
-        <button onClick={closeProductModal}><X className="w-5 h-5 text-slate-400" /></button>
-      </div>
-
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          autoFocus
-          placeholder="Search product by name, SKU, brand or category..."
-          value={productSearchTerm}
-          onChange={(e) => setProductSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
-        />
-      </div>
-
-      {/* Select all bar */}
-      <div className="flex items-center justify-between text-xs">
-        <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            disabled={selectable.length === 0}
-            onChange={toggleSelectAll}
-            className="rounded border-slate-300 text-amber-600"
-          />
-          <span>Select all ({selectable.length})</span>
-        </label>
-        <span className="text-slate-500">
-          <strong className="text-slate-900">{selectedIds.length}</strong> selected
-        </span>
-      </div>
-
-      {/* Mobile list (< sm) */}
-      <div className="block sm:hidden overflow-y-auto flex-1 divide-y divide-slate-100 border border-slate-200 rounded-xl">
-        {filteredProducts.length === 0 ? (
-          <div className="py-8 text-center text-slate-400 text-xs">
-            No lubricant products match "{productSearchTerm}"
-          </div>
-        ) : (
-          filteredProducts.map(p => {
-            const added = addedIds.has(p.id);
-            const checked = selectedIds.includes(p.id);
-            return (
-              <div
-                key={p.id}
-                onClick={() => !added && toggleSelect(p.id)}
-                className={`p-3 flex items-center gap-3 transition-colors ${
-                  added ? 'opacity-50' : checked ? 'bg-amber-50 cursor-pointer' : 'hover:bg-amber-50/50 cursor-pointer'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked || added}
-                  disabled={added}
-                  onChange={() => toggleSelect(p.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="rounded border-slate-300 text-amber-600 shrink-0"
-                />
-                <img
-                  src={p.image_url || PLACEHOLDER_IMG}
-                  alt={p.name}
-                  className="w-11 h-11 rounded-lg object-cover border border-slate-200 bg-slate-100 shrink-0"
-                  onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
-                />
-                <div className="overflow-hidden flex-1">
-                  <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
-                    <span>{p.brand_name}</span>
-                  </div>
-                </div>
-                {added && (
-                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded shrink-0">Added</span>
-                )}
+      {/* SEARCHABLE MULTI-SELECT PRODUCT MODAL */}
+      {showProductModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-amber-500" />
+                  Select Lubricant Products
+                </h3>
+                <p className="text-xs text-slate-500">Tick multiple products, then add them all at once</p>
               </div>
-            );
-          })
-        )}
-      </div>
+              <button onClick={closeProductModal}><X className="w-5 h-5 text-slate-400" /></button>
+            </div>
 
-      {/* Desktop table (>= sm) */}
-      <div className="hidden sm:block overflow-auto flex-1 border border-slate-200 rounded-xl">
-        <table className="w-full text-left border-collapse text-xs">
-          <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px]">
-            <tr>
-              <th className="py-2.5 px-3 w-10">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search product by name, SKU, brand or category..."
+                value={productSearchTerm}
+                onChange={(e) => setProductSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
+              />
+            </div>
+
+            {/* Select all bar */}
+            <div className="flex items-center justify-between text-xs">
+              <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -1325,99 +1313,164 @@ const toggleSelectAll = () => {
                   onChange={toggleSelectAll}
                   className="rounded border-slate-300 text-amber-600"
                 />
-              </th>
-              <th className="py-2.5 px-3">Image</th>
-              <th className="py-2.5 px-3">Product Name</th>
-             
-              <th className="py-2.5 px-3">Brand</th>
-              <th className="py-2.5 px-3">Category</th>
-              <th className="py-2.5 px-3">Unit</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredProducts.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400">
+                <span>Select all ({selectable.length})</span>
+              </label>
+              <span className="text-slate-500">
+                <strong className="text-slate-900">{selectedIds.length}</strong> selected
+              </span>
+            </div>
+
+            {/* Mobile list (< sm) */}
+            <div className="block sm:hidden overflow-y-auto flex-1 divide-y divide-slate-100 border border-slate-200 rounded-xl">
+              {filteredProducts.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
                   No lubricant products match "{productSearchTerm}"
-                </td>
-              </tr>
-            ) : (
-              filteredProducts.map(p => {
-                const added = addedIds.has(p.id);
-                const checked = selectedIds.includes(p.id);
-                return (
-                  <tr
-                    key={p.id}
-                    onClick={() => !added && toggleSelect(p.id)}
-                    className={`transition-colors ${
-                      added ? 'opacity-50' : checked ? 'bg-amber-50 cursor-pointer' : 'hover:bg-amber-50/50 cursor-pointer'
-                    }`}
-                  >
-                    <td className="py-2.5 px-3">
+                </div>
+              ) : (
+                filteredProducts.map(p => {
+                  const added = addedIds.has(p.id);
+                  const checked = selectedIds.includes(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => !added && toggleSelect(p.id)}
+                      className={`p-3 flex items-center gap-3 transition-colors ${added ? 'opacity-50' : checked ? 'bg-amber-50 cursor-pointer' : 'hover:bg-amber-50/50 cursor-pointer'
+                        }`}
+                    >
                       <input
                         type="checkbox"
                         checked={checked || added}
                         disabled={added}
                         onChange={() => toggleSelect(p.id)}
                         onClick={(e) => e.stopPropagation()}
+                        className="rounded border-slate-300 text-amber-600 shrink-0"
+                      />
+                      <img
+                        src={p.image_url || PLACEHOLDER_IMG}
+                        alt={p.name}
+                        className="w-11 h-11 rounded-lg object-cover border border-slate-200 bg-slate-100 shrink-0"
+                        onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
+                      />
+                      <div className="overflow-hidden flex-1">
+                        <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
+                          <span>{p.brand_name}</span>
+                        </div>
+                      </div>
+                      {added && (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded shrink-0">Added</span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop table (>= sm) */}
+            <div className="hidden sm:block overflow-auto flex-1 border border-slate-200 rounded-xl">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px]">
+                  <tr>
+                    <th className="py-2.5 px-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        disabled={selectable.length === 0}
+                        onChange={toggleSelectAll}
                         className="rounded border-slate-300 text-amber-600"
                       />
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-                        <img
-                          src={p.image_url || PLACEHOLDER_IMG}
-                          alt={p.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
-                        />
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <p className="font-bold text-slate-900">
-                        {p.name} {p.unit ? `– ${p.unit}` : ''}
-                        {added && (
-                          <span className="ml-2 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">Added</span>
-                        )}
-                      </p>
-                      <p className="text-[10px] text-slate-400 truncate max-w-xs">{p.description || 'Standard formulation'}</p>
-                    </td>
-                
-                    <td className="py-2.5 px-3 text-slate-700">{p.brand_name}</td>
-                    <td className="py-2.5 px-3 text-slate-600">{p.category_name}</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-semibold text-[10px]">{p.unit}</span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                    </th>
+                    <th className="py-2.5 px-3">Image</th>
+                    <th className="py-2.5 px-3">Product Name</th>
+                    <th className="py-2.5 px-3">Unit</th>
+                    <th className="py-2.5 px-3">Brand</th>
+                    <th className="py-2.5 px-3">Category</th>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-2 border-t">
-        <button
-          type="button"
-          onClick={closeProductModal}
-          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleAddSelected}
-          disabled={selectedIds.length === 0}
-          className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add {selectedIds.length > 0 ? `${selectedIds.length} ` : ''}Selected</span>
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
+                        No lubricant products match "{productSearchTerm}"
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProducts.map(p => {
+                      const added = addedIds.has(p.id);
+                      const checked = selectedIds.includes(p.id);
+                      return (
+                        <tr
+                          key={p.id}
+                          onClick={() => !added && toggleSelect(p.id)}
+                          className={`transition-colors ${added ? 'opacity-50' : checked ? 'bg-amber-50 cursor-pointer' : 'hover:bg-amber-50/50 cursor-pointer'
+                            }`}
+                        >
+                          <td className="py-2.5 px-3">
+                            <input
+                              type="checkbox"
+                              checked={checked || added}
+                              disabled={added}
+                              onChange={() => toggleSelect(p.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="rounded border-slate-300 text-amber-600"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                              <img
+                                src={p.image_url || PLACEHOLDER_IMG}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <p className="font-bold text-slate-900">
+                              {p.name}
+                              {added && (
+                                <span className="ml-2 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">Added</span>
+                              )}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate max-w-xs">{p.description || 'Standard formulation'}</p>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-semibold text-[10px]">{p.unit}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-700">{p.brand_name}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{p.category_name}</td>
+
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <button
+                type="button"
+                onClick={closeProductModal}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddSelected}
+                disabled={selectedIds.length === 0}
+                className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add {selectedIds.length > 0 ? `${selectedIds.length} ` : ''}Selected</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Colour suggestions come from the colours entered on the products themselves (no fixed list) */}
       <datalist id="colour-options">
         {Array.from(new Set(products.map(p => (p.item_colour || '').trim()).filter(Boolean))).map(c => (

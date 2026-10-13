@@ -286,7 +286,10 @@ export interface Order {
   billing_company_ifsc?: string;
   billing_company_branch?: string;
   billing_company_terms?: string;
-
+transportName?: string | null;
+transportAddress?: string | null;
+booking_station?: string | null;
+transport_contact_number?: string | null;
   vendor_id: number;
   vendor_name: string;
   vendor_contact?: string;

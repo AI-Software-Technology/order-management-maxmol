@@ -270,11 +270,10 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate, initialSearch = '', 
                 setStatus(tab.id);
                 setPage(1);
               }}
-              className={`px-3.5 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 ${
-                status === tab.id
+              className={`px-3.5 py-2 text-xs font-semibold rounded-t-lg transition border-b-2 ${status === tab.id
                   ? 'border-amber-500 text-amber-600 bg-amber-50/40'
                   : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -727,14 +726,14 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate, initialSearch = '', 
                           {/* Delete: only New / Cancelled orders (server enforces too) */}
                           {(user?.role_slug === 'super_admin' || hasPermission('orders:delete')) &&
                             ['NEW', 'CANCELLED'].includes(ord.order_status) && (
-                            <button
-                              onClick={() => handleDeleteOrder(ord)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
-                              title="Delete Order"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                              <button
+                                onClick={() => handleDeleteOrder(ord)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition"
+                                title="Delete Order"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
 
                           {/* Quick Admin Actions if NEW */}
                           {isAdmin && ord.order_status === 'NEW' && (

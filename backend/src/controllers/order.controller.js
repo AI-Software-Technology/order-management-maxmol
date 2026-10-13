@@ -333,7 +333,7 @@ exports.getOne = async (req, res) => {
 exports.create = async (req, res) => {
   const user = req.user;
   const {
-    company_id, vendor_id, items,
+    company_id, vendor_id, items, transportName, transportAddress, booking_station, transport_contact_number,
     required_delivery_date, delivery_address, delivery_contact_person, delivery_contact_number,
     special_instructions, notes, payment_terms, tax_type = 'GST_18',
   } = req.body;
@@ -374,6 +374,10 @@ exports.create = async (req, res) => {
     company_id: toId(company_id),
     vendor_id: vendor.id,
     sales_person_id: salesPersonId,
+    transportName: transportName || null,
+    transportAddress: transportAddress || null,
+    booking_station: booking_station || null,
+    transport_contact_number: transport_contact_number || null,
     order_status: 'NEW',
     production_status: 'NOT_ASSIGNED',
     packing_status: 'PENDING_PACKING',
@@ -457,7 +461,7 @@ exports.update = async (req, res) => {
   }
 
   const {
-    company_id, vendor_id, items, tax_type = order.tax_type || 'GST_18', notes, delivery_address,
+    transportAddress, booking_station, transport_contact_number, company_id, vendor_id, items, tax_type = order.tax_type || 'GST_18', notes, delivery_address, transportName,
     delivery_contact_person, delivery_contact_number, required_delivery_date, special_instructions, payment_terms,
   } = req.body;
 
@@ -499,6 +503,7 @@ exports.update = async (req, res) => {
         tax_amount: totals.taxAmount,
         grand_total: totals.grandTotal,
         pending_amount: pendingAmount,
+
         payment_status: newPaymentStatus,
         notes: notes !== undefined ? trimOrNull(notes) : order.notes,
         delivery_address: delivery_address !== undefined ? trimOrNull(delivery_address) : order.delivery_address,
@@ -506,6 +511,10 @@ exports.update = async (req, res) => {
         delivery_contact_number: delivery_contact_number !== undefined ? trimOrNull(delivery_contact_number) : order.delivery_contact_number,
         required_delivery_date: required_delivery_date !== undefined ? required_delivery_date || null : order.required_delivery_date,
         special_instructions: special_instructions !== undefined ? trimOrNull(special_instructions) : order.special_instructions,
+        transportName: transportName !== undefined ? trimOrNull(transportName) : order.transportName,
+        transportAddress: transportAddress !== undefined ? trimOrNull(transportAddress) : order.transportAddress,
+        booking_station: booking_station !== undefined ? trimOrNull(booking_station) : order.booking_station,
+        transport_contact_number: transport_contact_number !== undefined ? trimOrNull(transport_contact_number) : order.transport_contact_number,
         payment_terms: payment_terms !== undefined ? payment_terms || 'Credit 30 Days' : order.payment_terms,
         updated_by_id: user.id,
         updated_at: nowStr(),

@@ -399,8 +399,8 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
               (isDelivered
                 ? isAdmin || hasPermission("orders:edit_delivered")
                 : isAdmin ||
-                  hasPermission("orders:edit") ||
-                  order.sales_person_id === user?.id);
+                hasPermission("orders:edit") ||
+                order.sales_person_id === user?.id);
             if (!canEdit) return null;
             return (
               <button
@@ -513,11 +513,10 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                 <button
                   onClick={handleCompleteOrder}
                   disabled={!canComplete || actionLoading}
-                  className={`px-4 py-2 font-bold text-xs rounded-lg transition flex items-center gap-1.5 ${
-                    canComplete
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
-                      : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                  }`}
+                  className={`px-4 py-2 font-bold text-xs rounded-lg transition flex items-center gap-1.5 ${canComplete
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    }`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Mark Order Completed</span>
@@ -584,11 +583,10 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             <React.Fragment key={i}>
               <div className="flex flex-col items-center text-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                    st.active
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-400 border border-slate-200"
-                  }`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${st.active
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                    }`}
                 >
                   {st.active ? "✓" : i + 1}
                 </div>
@@ -629,7 +627,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           </p>
           <p className="text-lg font-bold text-emerald-700 mt-0.5">
             {order.order_status === "DELIVERED" ||
-            order.order_status === "COMPLETED"
+              order.order_status === "COMPLETED"
               ? totalQty
               : totalDelivered}{" "}
             / {totalQty}
@@ -675,11 +673,10 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id as any)}
-              className={`py-3 px-3.5 border-b-2 transition ${
-                activeTab === t.id
-                  ? "border-amber-500 text-amber-600 bg-white"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              className={`py-3 px-3.5 border-b-2 transition ${activeTab === t.id
+                ? "border-amber-500 text-amber-600 bg-white"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
             >
               {t.label}
             </button>
@@ -803,10 +800,14 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                           <th className="py-2.5 px-3">#</th>
                           <th className="py-2.5 px-3">Product Image</th>
                           <th className="py-2.5 px-3">Product Description</th>
-                     
+
                           <th className="py-2.5 px-3 text-right">
                             Ordered Qty
                           </th>
+                          <th className="py-2.5 px-3 text-right">
+                              Unit
+                          </th>
+
                           <th className="py-2.5 px-3 text-right">Dispatched</th>
                           <th className="py-2.5 px-3 text-right">Delivered</th>
                           <th className="py-2.5 px-3 text-right">
@@ -851,7 +852,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                             <td className="py-3 px-3">
                               <p className="font-bold text-slate-900">
                                 {it.product_name}{" "}
-                               
+
                               </p>
                               <span className="text-[11px] text-slate-500">
                                 {it.brand_name} • {it.category_name}
@@ -867,10 +868,15 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                                 </p>
                               )}
                             </td>
-                           
+
                             <td className="py-3 px-3 text-right font-bold text-slate-800">
-                              {it.quantity} {it.unit}
+                              {it.quantity}
                             </td>
+                            <td className="py-3 px-3 text-right font-bold text-slate-800">
+                              {it.unit}
+                            </td>
+
+
                             <td className="py-3 px-3 text-right font-mono font-semibold text-cyan-700">
                               {it.dispatched_quantity || 0}
                             </td>
@@ -916,6 +922,31 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                         </p>
                       )}
                     </div>
+
+                    {/* Transport Details */}
+<div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1 md:col-span-2">
+  <p className="font-bold uppercase text-[11px] tracking-wide text-slate-500 mb-2 flex items-center gap-1.5">
+    <Truck className="w-3.5 h-3.5" /> Transport Details
+  </p>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div>
+      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Name</span>
+      <span className="font-bold text-slate-900">{order.transportName || "—"}</span>
+    </div>
+    <div>
+      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Booking Station</span>
+      <span className="font-bold text-slate-900">{order.booking_station || "—"}</span>
+    </div>
+    <div>
+      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Contact</span>
+      <span className="font-mono font-bold text-slate-900">{order.transport_contact_number || "—"}</span>
+    </div>
+    <div>
+      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Address</span>
+      <span className="text-slate-800">{order.transportAddress || "—"}</span>
+    </div>
+  </div>
+</div>
 
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1.5 font-sans">
                       <p className="font-bold uppercase text-[11px] tracking-wide text-slate-500 mb-2">
@@ -990,16 +1021,16 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                         Delivered on:{" "}
                         {order.delivered_at
                           ? new Date(order.delivered_at).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              },
-                            )
+                            "en-IN",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            },
+                          )
                           : "Completed"}
                         {order.delivered_by_name
                           ? ` • Verified by: ${order.delivered_by_name}`
@@ -1202,13 +1233,13 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                                 const isVer = p.is_verified === 1;
                                 const canEditPay = isVer
                                   ? isAdmin ||
-                                    isAccounts ||
-                                    hasPermission("payments:verify")
+                                  isAccounts ||
+                                  hasPermission("payments:verify")
                                   : isAdmin ||
-                                    isAccounts ||
-                                    p.received_by_id === user?.id ||
-                                    order.sales_person_id === user?.id ||
-                                    hasPermission("payments:add");
+                                  isAccounts ||
+                                  p.received_by_id === user?.id ||
+                                  order.sales_person_id === user?.id ||
+                                  hasPermission("payments:add");
                                 if (!canEditPay) return null;
                                 return (
                                   <button
