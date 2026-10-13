@@ -6,7 +6,7 @@ import {
 import { Bill } from '../types.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
-
+import { createPortal } from 'react-dom';
 interface BillModalProps {
   billId: number | string | null;
   isOpen: boolean;
@@ -56,10 +56,16 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
   }, [billId, isOpen, autoPrint]);
 
   if (!isOpen) return null;
-
-  const handlePrint = () => {
-    window.print();
+const handlePrint = () => {
+  const oldTitle = document.title;
+  if (bill?.invoice_number) document.title = bill.invoice_number;
+  const restore = () => {
+    document.title = oldTitle;
+    window.removeEventListener('afterprint', restore);
   };
+  window.addEventListener('afterprint', restore);
+  window.print();
+};
 
   const isNonGst = bill?.tax_type === 'NON_GST';
   const billAmount = bill ? Number(bill.bill_amount || 0) : 0;
@@ -70,7 +76,52 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
   const receivedAmount = bill ? Number(bill.received_amount || 0) : 0;
   const balancePayment = bill ? Math.max(0, Number(bill.balance_payment || (billAmount - receivedAmount))) : 0;
 
-  return (
+  return createPortal(
+  <div
+    id="bill-print-root"
+    className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static print:overflow-visible"
+  >
+    <style>{`
+      @media print {
+        @page { size: A4; margin: 10mm; }
+#bill-print-root,
+#bill-print-root * {
+  border-color: #000 !important;
+}
+        /* Bill ke alawa poora page hide */
+        body > *:not(#bill-print-root) { display: none !important; }
+
+        html, body { background: #fff !important; height: auto !important; overflow: visible !important; }
+
+        #bill-print-root {
+          position: static !important;
+          display: block !important;
+          background: #fff !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          backdrop-filter: none !important;
+        }
+        #bill-print-root * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        #bill-print-root > div {
+          max-height: none !important;
+          max-width: 100% !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          overflow: visible !important;
+        }
+
+        /* Saare table borders black */
+        #bill-print-root table { border-collapse: collapse !important; width: 100%; }
+        #bill-print-root table th,
+        #bill-print-root table td { border: 1px solid #000 !important; }
+        #bill-print-root .bill-table-wrap { border: 1px solid #000 !important; border-radius: 0 !important; }
+
+        tr { page-break-inside: avoid; }
+      }
+    `}</style>
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static print:overflow-visible">
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[94vh] print:max-h-none print:shadow-none print:w-full print:rounded-none">
         
@@ -189,7 +240,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
               </div>
 
               {/* Bill To & Representative Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-900">
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5 text-slate-600" />
@@ -205,7 +256,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
                   </div>
                 </div>
 
-                <div className="space-y-1 sm:border-l sm:border-slate-200 sm:pl-4">
+                <div className="space-y-1 sm:border-l sm:border-slate-900 sm:pl-4">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-600" />
                     Sales & Payment Terms
@@ -229,10 +280,10 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
               </div>
 
               {/* Items Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="border border-slate-900 rounded-xl overflow-hidden bill-table-wrap">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-700 text-[11px] font-bold border-b border-slate-200">
+                    <tr className="bg-slate-100 text-slate-700 text-[11px] font-bold border-b border-slate-900">
                       <th className="py-2.5 px-3 w-10 text-center">#</th>
                       <th className="py-2.5 px-3">Product Description & Grade</th>
                       <th className="py-2.5 px-3 text-center">Packaging</th>
@@ -271,7 +322,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                 
                 {/* Left: Existing Payments & Ledger History */}
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-900 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                     <CreditCard className="w-3.5 h-3.5 text-slate-700" />
                     Verified Payment Receipts (Payments & Ledger)
@@ -279,7 +330,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
                   {bill.payments && bill.payments.length > 0 ? (
                     <div className="space-y-1.5 pt-1">
                       {bill.payments.map((p, pIdx) => (
-                        <div key={p.id || pIdx} className="flex items-center justify-between text-[11px] bg-white p-2 rounded-lg border border-slate-200">
+                        <div key={p.id || pIdx} className="flex items-center justify-between text-[11px] bg-white p-2 rounded-lg border border-slate-900">
                           <div>
                             <span className="font-semibold text-slate-800">{p.payment_mode}</span>
                             {p.reference_number && <span className="text-[10px] text-slate-500 font-mono ml-1.5">Ref: {p.reference_number}</span>}
@@ -302,7 +353,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
                 </div>
 
                 {/* Right: Tax Calculation & Final Bill Amount */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-900 space-y-2 text-xs">
                   {isNonGst ? (
                     /* Non-GST Bill: Normal Bill Amount with NO GST calculation */
                     <div className="space-y-2">
@@ -349,7 +400,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
                   )}
 
                   {/* Summary of Received & Balance */}
-                  <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
+                  <div className="border-t border-slate-900 pt-2 space-y-1 text-[11px]">
                     <div className="flex justify-between text-emerald-700 font-semibold">
                       <span>Total Verified Received:</span>
                       <span>₹{receivedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -364,7 +415,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
               </div>
 
               {/* Bank Details & Terms */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[11px] pt-2 border-t border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[11px] pt-2 border-t border-slate-900">
                 <div className="space-y-1">
                   <p className="font-bold text-slate-700 uppercase text-[10px] tracking-wide">Bank Details for RTGS / NEFT / IMPS</p>
                   <p><span className="text-slate-500">Bank Name:</span> <strong>{bill.company_bank || 'HDFC Bank Ltd'}</strong></p>
@@ -391,7 +442,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
         </div>
 
         {/* Footer info (Hidden when printing) */}
-        <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500 shrink-0 print:hidden">
+        <div className="px-5 py-3 border-t border-slate-900 bg-slate-50 flex items-center justify-between text-xs text-slate-500 shrink-0 print:hidden">
           <span>Official Commercial Bill Record • PetroFlow ERP</span>
           <button
             type="button"
@@ -404,5 +455,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
 
       </div>
     </div>
+    </div>,
+    document.body
   );
 };

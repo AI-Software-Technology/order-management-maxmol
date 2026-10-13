@@ -152,9 +152,9 @@ const buildRow = (prod: Product): SelectedProductRow => {
     unit: prod.unit,
     image_url: prod.image_url || PLACEHOLDER_IMG,
     item_colour: prod.item_colour || '',
-    quantity: 1,
+    quantity: 0,
     rate: initialRate,
-    line_amount: initialRate,
+    line_amount: 0,
     required_delivery_date: orderDeliveryDate || '',
     notes: ''
   };
@@ -207,9 +207,9 @@ const handleAddSelected = () => {
           unit: prod.unit,
           image_url: prod.image_url || 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=120&auto=format&fit=crop&q=80',
           item_colour: prod.item_colour || '',
-          quantity: 1,
+          quantity: 0,
           rate: initialRate,
-          line_amount: 1 * initialRate,
+          line_amount: 0,
           required_delivery_date: orderDeliveryDate || '',
           notes: ''
         }
@@ -223,8 +223,9 @@ const handleAddSelected = () => {
     setProductRows(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleRowQuantityChange = (index: number, qty: number) => {
-    const safeQty = Math.max(1, qty || 1);
+  const handleRowQuantityChange = (index: number, raw: string) => {
+    const digits = raw.replace(/[^0-9]/g, '').replace(/^0+/, '');
+    const safeQty = digits === '' ? 0 : Number(digits);
     setProductRows(prev => {
       const next = [...prev];
       next[index].quantity = safeQty;
@@ -234,7 +235,8 @@ const handleAddSelected = () => {
   };
 
 const handleRowRateChange = (index: number, rate: string) => {
-  const safeRate = rate === '' ? 0 : Math.max(0, Number(rate) || 0);
+  const cleaned = rate.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
+  const safeRate = cleaned === '' || cleaned === '.' ? 0 : Math.max(0, Number(cleaned) || 0);
 
   setProductRows(prev => {
     const next = [...prev];
@@ -279,7 +281,6 @@ const handleRowRateChange = (index: number, rate: string) => {
     const term = productSearchTerm.toLowerCase();
     return (
       p.name?.toLowerCase().includes(term) ||
-      p.sku?.toLowerCase().includes(term) ||
       p.brand_name?.toLowerCase().includes(term) ||
       p.category_name?.toLowerCase().includes(term) ||
       p.item_colour?.toLowerCase().includes(term) ||
@@ -346,6 +347,12 @@ const toggleSelectAll = () => {
     }
     if (productRows.length === 0) {
       alert('Please add at least one product in Step 3');
+      setStep(3);
+      return;
+    }
+    const bad = productRows.find(r => !(r.quantity > 0) || !(r.rate > 0));
+    if (bad) {
+      alert(`Enter quantity and selling rate for "${bad.product_name}"`);
       setStep(3);
       return;
     }
@@ -766,8 +773,7 @@ const toggleSelectAll = () => {
                             {row.product_name} {row.unit ? `– ${row.unit}` : ''}
                           </p>
                           <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10px]">
-                            <span className="font-mono text-slate-600 font-semibold">{row.sku}</span>
-                            <span className="text-slate-400">• {row.brand}</span>
+                            <span className="text-slate-400">{row.brand}</span>
                             <span className="px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded font-semibold">{row.unit}</span>
                           </div>
                         </div>
@@ -800,10 +806,11 @@ const toggleSelectAll = () => {
                           Quantity ({row.unit})
                         </label>
                         <input
-                          type="number"
-                          min="1"
-                          value={row.quantity}
-                          onChange={(e) => handleRowQuantityChange(idx, Number(e.target.value))}
+                          type="text"
+                          inputMode="numeric"
+                          value={row.quantity === 0 ? '' : row.quantity}
+                          placeholder="Qty"
+                          onChange={(e) => handleRowQuantityChange(idx, e.target.value)}
                           className="w-full p-2 bg-white border border-slate-300 rounded-lg font-mono font-bold text-slate-900"
                         />
                       </div>
@@ -815,11 +822,11 @@ const toggleSelectAll = () => {
                         <div className="relative">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
                           <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            value={row.rate}
-                            onChange={(e) => handleRowRateChange(idx, Number(e.target.value))}
+                            type="text"
+                            inputMode="decimal"
+                            value={row.rate === 0 ? '' : row.rate}
+                            placeholder="Rate"
+                            onChange={(e) => handleRowRateChange(idx, e.target.value)}
                             className="w-full pl-6 pr-2 py-2 bg-white border border-amber-300 rounded-lg font-mono font-bold text-slate-900"
                           />
                         </div>
@@ -846,7 +853,7 @@ const toggleSelectAll = () => {
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
                       <th className="py-3 px-3 w-14">Image</th>
-                      <th className="py-3 px-3">Product Name & SKU</th>
+                      <th className="py-3 px-3">Product Name</th>
                       <th className="py-3 px-3">Unit</th>
                       <th className="py-3 px-3 w-28">Quantity</th>
                       <th className="py-3 px-3 w-40">
@@ -876,12 +883,11 @@ const toggleSelectAll = () => {
                           </div>
                         </td>
 
-                        {/* Product Name & SKU */}
+                        {/* Product Name */}
                         <td className="py-3 px-3">
                           <p className="font-bold text-slate-900">{row.product_name} {row.unit ? `– ${row.unit}` : ''}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="font-mono text-[10px] text-slate-600 font-semibold">{row.sku}</span>
-                            <span className="text-[10px] text-slate-400">• {row.brand}</span>
+                            <span className="text-[10px] text-slate-400">{row.brand}</span>
                             <input
                               type="text"
                               list="colour-options"
@@ -904,10 +910,11 @@ const toggleSelectAll = () => {
                         {/* Quantity Input */}
                         <td className="py-3 px-3">
                           <input
-                            type="number"
-                            min="1"
-                            value={row.quantity}
-                            onChange={(e) => handleRowQuantityChange(idx, Number(e.target.value))}
+                            type="text"
+                            inputMode="numeric"
+                            value={row.quantity === 0 ? '' : row.quantity}
+                            placeholder="Qty"
+                            onChange={(e) => handleRowQuantityChange(idx, e.target.value)}
                             className="w-24 p-1.5 bg-white border border-slate-300 rounded font-mono font-bold text-right"
                           />
                         </td>
@@ -918,6 +925,7 @@ const toggleSelectAll = () => {
                             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
 <input
   type="text"
+  inputMode="decimal"
   value={row.rate === 0 ? '' : row.rate}
   onChange={(e) => handleRowRateChange(idx, e.target.value)}
   className="w-full pl-6 pr-2 py-1.5 bg-white border border-amber-300 rounded font-mono font-bold text-right text-slate-900 focus:ring-1 focus:ring-amber-500"
@@ -1292,7 +1300,7 @@ const toggleSelectAll = () => {
                 <div className="overflow-hidden flex-1">
                   <p className="font-bold text-slate-900 text-xs truncate">{p.name}</p>
                   <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
-                    <span>{p.sku}</span><span>•</span><span>{p.brand_name}</span>
+                    <span>{p.brand_name}</span>
                   </div>
                 </div>
                 {added && (

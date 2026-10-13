@@ -75,6 +75,7 @@ function LoginRoute() {
   return <Login />;
 }
 
+
 function AppLayout() {
   const location = useLocation();
   const navigate = useAppNavigate();
@@ -83,15 +84,17 @@ function AppLayout() {
   const closeMobileSidebar = useUIStore((s) => s.closeMobileSidebar);
   const mainRef = useRef<HTMLElement>(null);
 
-  // New page: close the mobile menu and scroll the content area back to the top
   useEffect(() => {
     closeMobileSidebar();
-    if (mainRef.current) mainRef.current.scrollTop = 0;
+
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+      mainRef.current.scrollLeft = 0;
+    }
   }, [location.pathname, closeMobileSidebar]);
 
   return (
-    // h-screen + overflow-hidden: viewport-locked shell. Only <main> scrolls, sidebar never moves.
-    <div className="app-shell h-screen overflow-hidden bg-slate-100 flex text-slate-900 font-sans antialiased">
+    <div className="app-shell flex h-screen w-full max-w-full overflow-hidden bg-slate-100 font-sans text-slate-900 antialiased">
       <Sidebar
         currentPage={sectionFromPath(location.pathname)}
         onNavigate={navigate}
@@ -102,17 +105,21 @@ function AppLayout() {
       {mobileSidebarOpen && (
         <div
           onClick={closeMobileSidebar}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden transition-opacity"
-        ></div>
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity lg:hidden"
+        />
       )}
 
-      <div className="app-content flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+    <div className="app-content flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Header
           onNavigate={navigate}
           onOpenNewOrder={() => navigate('create-order')}
           onToggleMobileSidebar={toggleMobileSidebar}
         />
-        <main ref={mainRef} className="app-main flex-1 min-h-0 overflow-y-auto bg-slate-100">
+
+        <main
+          ref={mainRef}
+          className="app-main relative min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto bg-slate-100"
+        >
           <ErrorBoundary resetKey={location.pathname}>
             <Outlet />
           </ErrorBoundary>
@@ -121,6 +128,7 @@ function AppLayout() {
     </div>
   );
 }
+
 
 /** Renders its children only if the user may open the named route (see lib/access.ts). */
 function Guard({ id, children }: { id: string; children: React.ReactNode }) {

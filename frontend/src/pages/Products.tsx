@@ -31,9 +31,7 @@ export const Products: React.FC = () => {
     name: '',
     brand_id: '',
     category_id: '',
-    sku: '',
     unit: '',
-    min_order_qty: '1',
     standard_rate: '',
     description: '',
     image_url: '',
@@ -128,9 +126,7 @@ export const Products: React.FC = () => {
       name: '',
       brand_id: brands[0]?.id ? brands[0].id.toString() : '',
       category_id: categories[0]?.id ? categories[0].id.toString() : '',
-      sku: '',
       unit: '',
-      min_order_qty: '1',
       standard_rate: '',
       description: '',
       image_url: '',
@@ -142,7 +138,7 @@ export const Products: React.FC = () => {
 
   // Open Edit Modal
   const handleDeleteProduct = async (p: Product) => {
-    if (await confirmAndDelete(`/api/products/${p.id}`, `Delete product "${p.name}" (${p.sku})? This cannot be undone.`)) fetchProducts();
+    if (await confirmAndDelete(`/api/products/${p.id}`, `Delete product "${p.name}"? This cannot be undone.`)) fetchProducts();
   };
 
   const openEditModal = (p: Product) => {
@@ -159,9 +155,7 @@ export const Products: React.FC = () => {
       name: p.name,
       brand_id: p.brand_id.toString(),
       category_id: p.category_id.toString(),
-      sku: p.sku,
       unit: p.unit,
-      min_order_qty: p.min_order_qty.toString(),
       standard_rate: p.standard_rate.toString(),
       description: p.description || '',
       image_url: p.image_url || '',
@@ -204,7 +198,6 @@ export const Products: React.FC = () => {
     const s = search.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
-      p.sku?.toLowerCase().includes(s) ||
       p.brand_name?.toLowerCase().includes(s) ||
       p.category_name?.toLowerCase().includes(s) ||
       p.item_colour?.toLowerCase().includes(s) ||
@@ -222,7 +215,7 @@ export const Products: React.FC = () => {
             Product Management
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Complete finished lubricant catalog with high-resolution images, brand categories, SKU specifications and item colors.
+            Complete finished lubricant catalog with high-resolution images, brand categories, specifications and item colors.
           </p>
         </div>
 
@@ -254,7 +247,7 @@ export const Products: React.FC = () => {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by Product Name, SKU, Brand, Category or Item Colour..."
+                placeholder="Search by Product Name, Brand, Category or Item Colour..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
@@ -318,7 +311,7 @@ export const Products: React.FC = () => {
                       <h4 className="font-bold text-slate-900 text-xs">
                         {p.name} 
                       </h4>
-                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">{p.sku} • {p.brand_name}</p>
+                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">{p.brand_name}</p>
                       <div className="flex items-center gap-1.5 mt-1">
                         <span className="px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-amber-50 text-amber-900 border border-amber-200">
                           {p.item_colour || 'Golden Yellow'}
@@ -336,7 +329,7 @@ export const Products: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                  <span className="text-slate-500 text-[11px]">Min Order: <strong>{p.min_order_qty} {p.unit}</strong></span>
+                  <span />
                   {canManage && (
                     <button
                       onClick={() => openEditModal(p)}
@@ -373,7 +366,6 @@ export const Products: React.FC = () => {
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Item Colour</th>
                 <th className="py-3 px-4">Packing Unit</th>
-                <th className="py-3 px-4">Min Qty</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-center">Actions</th>
               </tr>
@@ -423,7 +415,6 @@ export const Products: React.FC = () => {
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-800 font-semibold">{p.unit}</span>
                     </td>
-                    <td className="py-3 px-4 font-mono">{p.min_order_qty}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
                         p.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
@@ -603,17 +594,6 @@ export const Products: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                {/* <div>
-                  <label className="block font-semibold mb-1">SKU Code *</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.sku}
-                    onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
-                    placeholder="e.g. UD-5W30-SYN"
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono uppercase"
-                  />
-                </div> */}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -684,18 +664,6 @@ export const Products: React.FC = () => {
                     onChange={(e) => setForm({ ...form, item_colour: e.target.value })}
                     placeholder="e.g. Golden Yellow, Red, Amber"
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold mb-1">Min Order Qty *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={form.min_order_qty}
-                    onChange={(e) => setForm({ ...form, min_order_qty: e.target.value })}
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono"
                   />
                 </div>
 

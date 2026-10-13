@@ -96,18 +96,19 @@ exports.vendorLastRate = async (req, res) => {
 };
 
 exports.createProduct = async (req, res) => {
-  const { name, brand_id, category_id, unit, min_order_qty, standard_rate, description, image_url, item_colour, status } = req.body;
+  const { name, brand_id, category_id, unit, standard_rate, description, image_url, item_colour, status } = req.body;
   const cleanUnit = (unit || '').toString().trim();
-  if (!name || !brand_id || !category_id  || !cleanUnit) {
+  if (!name || !brand_id || !category_id || !cleanUnit) {
     return res.status(400).json({ error: 'Name, Brand, Category,and Packing Unit are required' });
   }
-  if (await Product.exists({ sku })) {
-    return res.status(400).json({ error: `A product with SKU "${sku}" already exists` });
-  }
+  // SKU is no longer entered by the user; keep an internal sequential code so bills/packing slips stay consistent.
+  const all = await Product.rows({}, { select: 'sku' });
+  const maxSku = all.reduce((m, p) => Math.max(m, parseInt(p.sku, 10) || 0), 0);
+  const sku = String(maxSku + 1).padStart(3, '0');
 
   const product = await Product.insert({
-    name, brand_id: Number(brand_id), category_id: Number(category_id),  unit: cleanUnit,
-    min_order_qty: Number(min_order_qty) || 1, standard_rate: Number(standard_rate) || 0,
+    name, brand_id: Number(brand_id), category_id: Number(category_id), unit: cleanUnit,
+    min_order_qty: 1, standard_rate: Number(standard_rate) || 0,
     description: description || '', image_url: image_url || '',
     item_colour: item_colour || 'Golden Yellow', status: status || 'active',
   });
@@ -118,27 +119,22 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   const id = toId(req.params.id);
-  const { name, brand_id, category_id, sku, unit, min_order_qty, standard_rate, description, image_url, item_colour, status } = req.body;
+  const { name, brand_id, category_id, unit, standard_rate, description, image_url, item_colour, status } = req.body;
   const cleanUnit = (unit || '').toString().trim();
   if (!cleanUnit) return res.status(400).json({ error: 'Packing Unit is required' });
-
-  if (sku && (await Product.exists({ sku, id: { $ne: id } }))) {
-    return res.status(400).json({ error: `A product with SKU "${sku}" already exists` });
-  }
 
   await Product.updateOne(
     { id },
     {
       $set: {
-        name, brand_id: Number(brand_id), category_id: Number(category_id), sku, unit: cleanUnit,
-        min_order_qty: min_order_qty === undefined || min_order_qty === null || min_order_qty === '' ? null : Number(min_order_qty),
+        name, brand_id: Number(brand_id), category_id: Number(category_id), unit: cleanUnit,
         standard_rate: standard_rate === undefined || standard_rate === null || standard_rate === '' ? null : Number(standard_rate),
         description, image_url, item_colour: item_colour || 'Golden Yellow', status: status || 'active',
       },
     }
   );
 
-  await logActivity(req.user.id, 'PRODUCT_UPDATED', 'product', req.params.id, `Updated product specs for ${sku} (Packing Unit: ${cleanUnit})`);
+  await logActivity(req.user.id, 'PRODUCT_UPDATED', 'product', req.params.id, `Updated product specs for ${name} (Packing Unit: ${cleanUnit})`);
   res.json({ message: 'Product updated successfully' });
 };
 

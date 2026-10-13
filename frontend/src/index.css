@@ -30,3 +30,8 @@
   tr { break-inside: avoid; page-break-inside: avoid; }
   .print-wrap { overflow: visible !important; }
 }
+
+/* Hide number-input spinner arrows everywhere (no up/down scroll buttons) */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }

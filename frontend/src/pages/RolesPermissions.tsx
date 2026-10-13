@@ -156,7 +156,7 @@ export const RolesPermissions: React.FC = () => {
         setTimeout(() => setSuccessToast(null), 5000);
         await fetchRolesData(selectedRoleId);
         // Re-read the signed-in user's permissions in the background (never blocks / blanks this screen)
-        refreshUser().catch(() => {});
+        refreshUser().catch(() => { });
       } else {
         setErrorToast(data.error || 'Failed to save permissions to database.');
       }
@@ -308,7 +308,7 @@ export const RolesPermissions: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6   mx-auto">
+    <div className="w-full min-w-0 max-w-full box-border p-3 sm:p-5 lg:p-6 space-y-6 overflow-x-clip">
       {/* Toast Notification */}
       {successToast && (
         <div className="fixed top-4 right-4 z-50 bg-emerald-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-emerald-700 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
@@ -371,9 +371,9 @@ export const RolesPermissions: React.FC = () => {
       </div>
 
       {/* Main Grid: Role Selector & Matrix Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         {/* Role Selector Sidebar */}
-        <div className="lg:col-span-4 space-y-3">
+        <div className="min-w-0 space-y-3 lg:col-span-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Corporate Roles</h3>
             <span className="text-[11px] font-semibold text-slate-400 font-mono">{roles.length} Roles</span>
@@ -404,11 +404,10 @@ export const RolesPermissions: React.FC = () => {
                 <div
                   key={r.id}
                   onClick={() => handleRoleSelect(r)}
-                  className={`p-4 rounded-xl border cursor-pointer transition text-left ${
-                    isSelected
+                  className={`p-4 rounded-xl border cursor-pointer transition text-left ${isSelected
                       ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between gap-1">
                     <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5 flex-wrap">
@@ -492,7 +491,7 @@ export const RolesPermissions: React.FC = () => {
         </div>
 
         {/* Matrix Table */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+        <div className="flex min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs lg:col-span-8">
           {/* Matrix Header */}
           <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/70">
             <div>
@@ -548,8 +547,8 @@ export const RolesPermissions: React.FC = () => {
           </div>
 
           {/* Matrix Table View */}
-          <div className="overflow-x-auto flex-1 p-2 sm:p-4">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="w-full min-w-0 max-w-full flex-1 overflow-x-auto p-2 sm:p-4">
+            <table className="w-full min-w-[760px] border-collapse text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider bg-slate-50/50">
                   <th className="py-3 px-3 min-w-[140px]">Module</th>
@@ -606,11 +605,10 @@ export const RolesPermissions: React.FC = () => {
                                   <label
                                     key={p.id}
                                     title={`${p.action} (${p.code}): ${p.description || ''}`}
-                                    className={`inline-flex items-center justify-center p-1 rounded-md cursor-pointer transition ${
-                                      isChecked
+                                    className={`inline-flex items-center justify-center p-1 rounded-md cursor-pointer transition ${isChecked
                                         ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
                                         : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'
-                                    }`}
+                                      }`}
                                   >
                                     <input
                                       type="checkbox"
@@ -641,11 +639,10 @@ export const RolesPermissions: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => toggleModulePermissions(modName, !isFullyActive)}
-                          className={`text-[10px] font-bold px-2 py-1 rounded transition border ${
-                            isFullyActive
+                          className={`text-[10px] font-bold px-2 py-1 rounded transition border ${isFullyActive
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                               : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                          }`}
+                            }`}
                         >
                           {isFullyActive ? 'Enabled' : 'Toggle'}
                         </button>
@@ -664,18 +661,17 @@ export const RolesPermissions: React.FC = () => {
               <span className="text-[11px] text-slate-400 font-normal">Click any capability badge to toggle</span>
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
               {allPermissions.map(p => {
                 const isChecked = selectedPermIds.includes(p.id);
                 return (
                   <div
                     key={p.id}
                     onClick={() => togglePermission(p.id)}
-                    className={`p-3 rounded-xl border cursor-pointer transition text-left flex items-start gap-2.5 ${
-                      isChecked
+                    className={`p-3 rounded-xl border cursor-pointer transition text-left flex items-start gap-2.5 ${isChecked
                         ? 'bg-white border-indigo-400 text-slate-900 shadow-2xs'
                         : 'bg-transparent border-slate-200 text-slate-500 hover:bg-white'
-                    }`}
+                      }`}
                   >
                     <div className="mt-0.5 shrink-0">
                       {isChecked ? (

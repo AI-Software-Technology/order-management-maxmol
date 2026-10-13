@@ -1,13 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import {
   PackageCheck, CheckCircle2, Clock, AlertTriangle, ArrowRight,
-  Eye, RefreshCw, X, Box, Check, AlertCircle, User, Truck, Building2, Search, Filter
+  Eye, RefreshCw, X, Box, Check, AlertCircle, User, Truck, Building2, Search, Filter,
+  Printer, Download
 } from 'lucide-react';
 import { useAuth } from '../store/authStore.js';
 import { DateRangeFilter } from '../components/DateRangeFilter.js';
 import { DateRange, getDateRangeFromPreset } from '../utils/dateFilters.js';
 import { apiFetch } from '../lib/api.js';
 import { getToken } from '../lib/session.js';
+import { createPortal } from 'react-dom';
+
+
+const esc = (v: any) =>
+  String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const printPackingSlip = (order: any) => {
+  const items = order.items || [];
+  const totalQty = items.reduce((a: number, b: any) => a + (Number(b.quantity) || 0), 0);
+  const dateStr = order.created_at
+    ? new Date(String(order.created_at).replace(' ', 'T')).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '-';
+  const title = `Packing-Slip-${order.order_number}`;
+
+  const rows = items.map((it: any, idx: number) => `
+    <tr>
+      <td class="c">${idx + 1}</td>
+      <td><b>${esc(it.product_name)}</b></td>
+      <td>${esc(it.sku)}</td>
+      <td>${esc(it.brand_name)}</td>
+      <td>${esc(it.item_colour || '-')}</td>
+      <td>${esc(it.unit)}</td>
+      <td class="r"><b>${esc(it.quantity)}</b></td>
+      <td class="c"><span class="chk"></span></td>
+    </tr>`).join('');
+
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; margin: 0; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
+  .brand { font-size: 18px; font-weight: 900; }
+  .right { text-align: right; }
+  .ttl { font-size: 16px; font-weight: 800; letter-spacing: 1px; }
+  .grid { display: flex; gap: 10px; margin-bottom: 12px; }
+  .box { flex: 1; border: 1px solid #000; padding: 8px 10px; }
+  .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; vertical-align: middle; }
+  th { background: #eee; }
+  tr { page-break-inside: avoid; }
+  .c { text-align: center; } .r { text-align: right; }
+  .chk { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; }
+  .sign { display: flex; justify-content: space-between; gap: 24px; margin-top: 60px; }
+  .sign div { flex: 1; text-align: center; border-top: 1px solid #000; padding-top: 4px; font-weight: 700; }
+  .foot { margin-top: 16px; font-size: 10px; text-align: center; }
+</style></head>
+<body>
+  <div class="head">
+    <div><div class="brand">PETROFLOW ERP</div><div style="font-size:11px">Lubricant Order &amp; Delivery</div></div>
+    <div class="right">
+      <div class="ttl">PACKING SLIP</div>
+      <div>Order No: <b>#${esc(order.order_number)}</b></div>
+      <div>Date: <b>${esc(dateStr)}</b></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="box">
+      <div class="lbl">Client / Party</div>
+      <div style="font-weight:700;font-size:14px">${esc(order.vendor_name)}</div>
+      ${order.vendor_city ? `<div>${esc(order.vendor_city)}</div>` : ''}
+      <div style="margin-top:4px"><b>Delivery To:</b> ${esc(order.delivery_address || 'Same as client address')}</div>
+    </div>
+    <div class="box">
+      <div class="lbl">Order Info</div>
+      <div>Sales Rep: <b>${esc(order.sales_person_name)}</b></div>
+      <div>Target Date: <b>${esc(order.required_delivery_date || 'Standard')}</b></div>
+      <div>Packing Status: <b>${esc(String(order.packing_status || '').replace(/_/g, ' '))}</b></div>
+    </div>
+  </div>
+
+  ${order.special_instructions ? `<div class="box" style="margin-bottom:12px"><b>Special Instructions:</b> ${esc(order.special_instructions)}</div>` : ''}
+
+  <table>
+    <thead>
+      <tr>
+        <th class="c" style="width:28px">#</th><th>Product</th><th>SKU</th><th>Brand</th>
+        <th>Colour</th><th>Pack Size</th><th class="r">Qty</th><th class="c" style="width:50px">Packed</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+      <tr>
+        <td colspan="6" class="r"><b>Total (${items.length} items)</b></td>
+        <td class="r"><b>${totalQty}</b></td><td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sign"><div>Packed By</div><div>Checked By</div><div>Received By</div></div>
+  <div class="foot">This is a computer-generated packing slip from PetroFlow ERP.</div>
+</body></html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(iframe);
+
+  const win = iframe.contentWindow!;
+  const doc = win.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  const oldTitle = document.title;
+  document.title = title; // PDF file name
+  const done = () => {
+    document.title = oldTitle;
+    setTimeout(() => iframe.remove(), 300);
+  };
+  win.onafterprint = done;
+
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 300);
+};
 
 export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }> = ({ onNavigate }) => {
   const { user, hasPermission } = useAuth();
@@ -30,7 +154,9 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
   const [holdModalOpen, setHoldModalOpen] = useState(false);
   const [holdReason, setHoldReason] = useState('Stock unavailable for one or more ordered lubricant grades');
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [slipOrder, setSlipOrder] = useState<any | null>(null);
 
+  const handlePrintSlip = (ord: any) => printPackingSlip(ord);
   const confirmDeliver = async () => {
     if (!orderToDeliver) return;
     setActionLoading(true);
@@ -58,6 +184,23 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
       setActionLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!slipOrder) return;
+    const oldTitle = document.title;
+    document.title = `Packing-Slip-${slipOrder.order_number}`; // PDF file name
+    const restore = () => {
+      document.title = oldTitle;
+      setSlipOrder(null);
+    };
+    window.addEventListener('afterprint', restore);
+    const t = setTimeout(() => window.print(), 300);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('afterprint', restore);
+      document.title = oldTitle;
+    };
+  }, [slipOrder]);
 
   const fetchOrders = async (range: DateRange = dateRange, sp = selectedSalesPerson, v = selectedVendor) => {
     setLoading(true);
@@ -165,14 +308,14 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
     // Filter 1: Sales Person
     if (selectedSalesPerson !== 'ALL') {
       const matchSP = (o.sales_person_name || '').trim().toLowerCase() === selectedSalesPerson.trim().toLowerCase() ||
-                      String(o.sales_person_id) === selectedSalesPerson;
+        String(o.sales_person_id) === selectedSalesPerson;
       if (!matchSP) return false;
     }
 
     // Filter 2: Vendor
     if (selectedVendor !== 'ALL') {
       const matchV = (o.vendor_name || '').trim().toLowerCase() === selectedVendor.trim().toLowerCase() ||
-                     String(o.vendor_id) === selectedVendor;
+        String(o.vendor_id) === selectedVendor;
       if (!matchV) return false;
     }
 
@@ -233,9 +376,8 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <button
           onClick={() => setActiveTab('PENDING')}
-          className={`p-4 rounded-xl border text-left transition ${
-            activeTab === 'PENDING' ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
-          }`}
+          className={`p-4 rounded-xl border text-left transition ${activeTab === 'PENDING' ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">Pending Packing</span>
@@ -247,9 +389,8 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
 
         <button
           onClick={() => setActiveTab('IN_PROGRESS')}
-          className={`p-4 rounded-xl border text-left transition ${
-            activeTab === 'IN_PROGRESS' ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
-          }`}
+          className={`p-4 rounded-xl border text-left transition ${activeTab === 'IN_PROGRESS' ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">Packing In Progress</span>
@@ -261,9 +402,8 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
 
         <button
           onClick={() => setActiveTab('PACKED')}
-          className={`p-4 rounded-xl border text-left transition ${
-            activeTab === 'PACKED' ? 'bg-indigo-500/10 border-indigo-500 ring-2 ring-indigo-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
-          }`}
+          className={`p-4 rounded-xl border text-left transition ${activeTab === 'PACKED' ? 'bg-indigo-500/10 border-indigo-500 ring-2 ring-indigo-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">Packed Orders</span>
@@ -275,9 +415,8 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
 
         <button
           onClick={() => setActiveTab('DELIVERED')}
-          className={`p-4 rounded-xl border text-left transition ${
-            activeTab === 'DELIVERED' ? 'bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
-          }`}
+          className={`p-4 rounded-xl border text-left transition ${activeTab === 'DELIVERED' ? 'bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">Order Delivered</span>
@@ -289,9 +428,8 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
 
         <button
           onClick={() => setActiveTab('ON_HOLD')}
-          className={`p-4 rounded-xl border text-left transition ${
-            activeTab === 'ON_HOLD' ? 'bg-rose-500/10 border-rose-500 ring-2 ring-rose-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
-          }`}
+          className={`p-4 rounded-xl border text-left transition ${activeTab === 'ON_HOLD' ? 'bg-rose-500/10 border-rose-500 ring-2 ring-rose-400/20' : 'bg-white border-slate-200 hover:border-slate-300'
+            }`}
         >
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-xs font-semibold">Orders On Hold</span>
@@ -326,11 +464,10 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id as any)}
-              className={`px-3.5 py-2 rounded-lg shrink-0 transition whitespace-nowrap text-xs ${
-                activeTab === t.id
-                  ? 'bg-slate-900 text-white font-bold shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+              className={`px-3.5 py-2 rounded-lg shrink-0 transition whitespace-nowrap text-xs ${activeTab === t.id
+                ? 'bg-slate-900 text-white font-bold shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}
             >
               {t.label}
             </button>
@@ -479,17 +616,16 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
             return (
               <div
                 key={ord.id}
-                className={`bg-white rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition hover:shadow-md ${
-                  isDelivered
-                    ? 'border-emerald-300 bg-emerald-50/20 shadow-2xs'
-                    : isHold
+                className={`bg-white rounded-2xl border p-5 flex flex-col justify-between space-y-4 transition hover:shadow-md ${isDelivered
+                  ? 'border-emerald-300 bg-emerald-50/20 shadow-2xs'
+                  : isHold
                     ? 'border-rose-200 bg-rose-50/20'
                     : isPacked
-                    ? 'border-indigo-300 bg-indigo-50/20'
-                    : isInProgress
-                    ? 'border-blue-200 bg-blue-50/20'
-                    : 'border-slate-200 shadow-xs'
-                }`}
+                      ? 'border-indigo-300 bg-indigo-50/20'
+                      : isInProgress
+                        ? 'border-blue-200 bg-blue-50/20'
+                        : 'border-slate-200 shadow-xs'
+                  }`}
               >
                 <div className="space-y-3">
                   {/* Top Bar */}
@@ -498,24 +634,23 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                       {isDelivered && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                       #{ord.order_number}
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      isDelivered
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : isHold
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${isDelivered
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : isHold
                         ? 'bg-rose-100 text-rose-800'
                         : isPacked
-                        ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
-                        : isInProgress
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
+                          ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
+                          : isInProgress
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-amber-100 text-amber-800'
+                      }`}>
                       {isDelivered ? 'Delivered' : isHold ? 'On Hold' : isPacked ? 'Packed' : isInProgress ? 'Packing In Progress' : 'Pending Packing'}
                     </span>
                   </div>
 
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm truncate" title={ord.vendor_name}>{ord.vendor_name}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    <p className="text-md text-slate-900 font-bold mt-0.5 truncate">
                       Sales Rep: {ord.sales_person_name} • Target Date: {ord.required_delivery_date || 'Standard'}
                     </p>
                     {isDelivered && ord.delivered_by_name && (
@@ -564,7 +699,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                 </div>
 
                 {/* Card Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => setSelectedOrder(ord)}
                     className="p-1.5 text-slate-500 hover:text-slate-800 transition"
@@ -572,58 +707,20 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                   >
                     <Eye className="w-4 h-4" />
                   </button>
-
-                  <div className="flex items-center gap-1.5">
-                    {/* Action button based on state */}
-                    {isDelivered && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-300 shadow-2xs">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Delivered</span>
-                      </span>
-                    )}
-
-                    {!isDelivered && !isHold && !isInProgress && !isPacked && (
-                      <button
-                        onClick={() => handlePackingAction(ord.id, 'START_PACKING')}
-                        disabled={actionLoading}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition"
-                      >
-                        Start Packing
-                      </button>
-                    )}
-
-                    {!isDelivered && isInProgress && (
-                      <button
-                        onClick={() => handlePackingAction(ord.id, 'PACKING_COMPLETED')}
-                        disabled={actionLoading}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition"
-                      >
-                        Packing Completed
-                      </button>
-                    )}
-
-                    {!isDelivered && isPacked && (
-                      <button
-                        onClick={() => setOrderToDeliver(ord)}
-                        disabled={actionLoading}
-                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wide rounded-lg transition shadow-xs flex items-center gap-1.5"
-                        title="Directly mark order as Delivered"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>DELIVER</span>
-                      </button>
-                    )}
-
-                    {!isDelivered && isHold && (
-                      <button
-                        onClick={() => handlePackingAction(ord.id, 'START_PACKING')}
-                        disabled={actionLoading}
-                        className="px-2.5 py-1 text-xs text-rose-700 hover:bg-rose-100 font-bold rounded-lg transition"
-                      >
-                        Resume Packing
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => handlePrintSlip(ord)}
+                    className="p-1.5 text-amber-600 hover:text-amber-800 transition"
+                    title="Print Packing Slip"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handlePrintSlip(ord)}
+                    className="p-1.5 text-indigo-600 hover:text-indigo-800 transition"
+                    title="Download Packing Slip PDF"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             );
@@ -676,9 +773,9 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                 Finished Products to Prepare & Pack ({selectedOrder.items?.length || 0})
               </h4>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {selectedOrder.items?.map((it: any) => (
-                  <div key={it.id} className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3">
+                  <div key={it.id} className="p-3 bg-white rounded-xl border border-slate-900 shadow-2xs flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <img
                         src={it.product_image || 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=80&auto=format&fit=crop&q=60'}
@@ -708,7 +805,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                     </div>
 
                     {/* Availability toggle buttons */}
-                    <div className="flex flex-col sm:flex-row items-center gap-1.5 shrink-0">
+                    {/* <div className="flex flex-col sm:flex-row items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => handlePackingAction(selectedOrder.id, 'ITEM_AVAILABILITY', { item_id: it.id, availability: 'AVAILABLE' })}
@@ -734,7 +831,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                         <X className="w-3 h-3" />
                         <span>Not Available</span>
                       </button>
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>

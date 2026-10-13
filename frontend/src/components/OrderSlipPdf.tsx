@@ -54,20 +54,20 @@ const s = StyleSheet.create({
   pill: { marginTop: 3, paddingVertical: 2, paddingHorizontal: 7, borderRadius: 10, fontSize: 7, fontWeight: 700, letterSpacing: 0.6 },
 
   // Party / delivery
-  twoCol: { flexDirection: 'row', marginTop: 8, borderWidth: 1, borderColor: C.line, borderRadius: 4, backgroundColor: C.softer },
+  twoCol: { flexDirection: 'row', marginTop: 8, borderWidth: 1, borderColor: C.text, borderRadius: 4, backgroundColor: C.softer },
   colLeft: { flex: 1, padding: 7 },
-  colRight: { flex: 1, padding: 7, borderLeftWidth: 1, borderLeftColor: C.line },
+  colRight: { flex: 1, padding: 7, borderLeftWidth: 1, borderLeftColor: C.text },
   label: { fontSize: 6.5, fontWeight: 700, color: C.muted, letterSpacing: 0.8, marginBottom: 2 },
   partyName: { fontSize: 10, fontWeight: 700, color: C.ink, marginBottom: 1 },
   line: { fontSize: 8, lineHeight: 1.3, marginTop: 0.5 },
-  note: { marginTop: 3, padding: 3, backgroundColor: C.amberSoft, borderWidth: 1, borderColor: C.amberLine, borderRadius: 3, fontSize: 7.5, color: '#78350f' },
+  note: { marginTop: 3, padding: 3, backgroundColor: C.amberSoft, borderWidth: 1, borderColor: C.text, borderRadius: 3, fontSize: 7.5, color: '#78350f' },
 
   // Table
-  table: { marginTop: 8, borderWidth: 1, borderColor: C.line, borderRadius: 3 },
-  th: { flexDirection: 'row', backgroundColor: C.ink, color: '#fff', paddingVertical: 4, alignItems: 'center' },
+  table: { marginTop: 8, borderWidth: 1, borderColor: C.text, borderRadius: 3 },
+  th: { flexDirection: 'row', backgroundColor: C.ink, color: '#fff', borderWidth: 1, borderColor: C.text, paddingVertical: 4, alignItems: 'center' },
   thText: { color: '#fff', fontWeight: 700, fontSize: 7, letterSpacing: 0.3, paddingHorizontal: 4 },
-  tr: { flexDirection: 'row', alignItems: 'center', paddingVertical: 3, borderTopWidth: 1, borderTopColor: C.soft },
-  trAlt: { backgroundColor: C.softer },
+  tr: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.text, paddingVertical: 3, borderTopWidth: 1, borderTopColor: C.text },
+  trAlt: { backgroundColor: C.softer, borderWidth: 1, borderColor: C.text, },
   td: { paddingHorizontal: 4, fontSize: 8 },
   cIdx: { width: '5%', textAlign: 'center' },
   cImg: { width: '8%', alignItems: 'center' },
@@ -87,7 +87,7 @@ const s = StyleSheet.create({
   bankBox: { flex: 1, marginRight: 8, padding: 7, borderWidth: 1, borderColor: C.line, borderRadius: 4, backgroundColor: C.softer },
   sumBox: { flex: 1, padding: 7, borderWidth: 1, borderColor: C.line, borderRadius: 4 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 1.5 },
-  terms: { marginTop: 4, paddingTop: 3, borderTopWidth: 1, borderTopColor: C.line, fontSize: 7, color: C.muted, lineHeight: 1.25 },
+  terms: { marginTop: 4, paddingTop: 3, borderTopWidth: 1, borderTopColor: C.text, fontSize: 7, color: C.muted, lineHeight: 1.25 },
   grand: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingVertical: 4, paddingHorizontal: 6, backgroundColor: C.ink, borderRadius: 3 },
   grandText: { color: '#fff', fontWeight: 700, fontSize: 9.5 },
   recv: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 3, color: C.green },
@@ -102,7 +102,7 @@ const s = StyleSheet.create({
   sigSub: { fontSize: 7, color: C.muted, textAlign: 'center', marginTop: 0 },
 
   // Footer
-  footer: { position: 'absolute', left: 24, right: 24, bottom: 14, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 4, borderTopWidth: 1, borderTopColor: C.line, fontSize: 7, color: C.muted },
+  footer: { position: 'absolute', left: 24, right: 24, bottom: 14, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 4, borderTopWidth: 1, borderTopColor: C.text, fontSize: 7, color: C.muted },
 });
 // ---------- helpers ----------
 const money = (n: number | undefined | null) =>
@@ -152,8 +152,8 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
     order.pending_amount <= 0
       ? { label: 'PAID', bg: C.greenSoft, fg: C.green }
       : order.amount_received > 0
-      ? { label: 'PARTIALLY PAID', bg: C.amberSoft, fg: '#92400e' }
-      : { label: 'PAYMENT PENDING', bg: C.redSoft, fg: C.red };
+        ? { label: 'PARTIALLY PAID', bg: C.amberSoft, fg: '#92400e' }
+        : { label: 'PAYMENT PENDING', bg: C.redSoft, fg: C.red };
 
   const half = order.tax_rate ? order.tax_rate / 2 : 0;
   const hasBank = order.billing_company_bank || order.billing_company_account || order.billing_company_ifsc;
@@ -250,10 +250,10 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
                     {img ? <Image src={img} style={s.thumb} /> : <View style={s.thumbEmpty} />}
                   </View>
                   <View style={[s.td, s.cName]}>
-                    <Text style={s.itemName}>{item.product_name}</Text> 
+                    <Text style={s.itemName}>{item.product_name}</Text>
                     {item.item_colour ? <Text style={s.itemNote}>{item.item_colour}</Text> : null}
                   </View>
-                
+
                   <Text style={[s.td, s.cQty, { fontWeight: 700, color: C.ink }]}>{item.quantity}</Text>
                   <Text style={[s.td, s.cUnit]}>{item.unit}</Text>
                   <Text style={[s.td, s.cRate]}>{money(item.rate)}</Text>
