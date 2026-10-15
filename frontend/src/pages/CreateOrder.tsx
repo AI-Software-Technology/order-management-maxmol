@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Building2, Store, Package, Truck, CreditCard, Plus, Trash2,
-  CheckCircle2, ArrowRight, ArrowLeft, AlertCircle, Info, Search, X, Eye
+  CheckCircle2, ArrowRight, ArrowLeft, AlertCircle, Info, Search, X, Eye, FileText
 } from 'lucide-react';
 import { useAuth } from '../store/authStore.js';
 import { Company, Vendor, Product } from '../types.js';
@@ -1126,27 +1126,29 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
                 </div>
               </div>
 
-              {/* Transport Details */}
-
-            </div>
-            <div>
-              <div className=" gap-3">
-
-
-                <label className="block font-semibold mb-1">Order Remarks / Notes (Optional)</label>
+              {/* Order Remarks */}
+              <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="order-remarks" className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-amber-500" />
+                    Order Remarks / Notes
+                  </label>
+                  <span className="text-[10px] text-slate-400">Optional · {specialInstructions.length}/300</span>
+                </div>
                 <textarea
-                  rows={2}
+                  id="order-remarks"
+                  rows={3}
+                  maxLength={300}
                   value={specialInstructions}
                   onChange={(e) => setSpecialInstructions(e.target.value)}
-                  placeholder="Additional commercial notes, delivery guidelines, etc."
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg"
+                  placeholder="Commercial notes, delivery guidelines, special packing instructions..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none resize-none transition"
                 />
-
               </div>
             </div>
 
             {/* Right: Initial Financial Summary Card */}
-            <div className="space-y-4">
+            <div className="space-y-4 md:sticky md:top-4 self-start">
               <div className="p-5 bg-gradient-to-br from-slate-50 to-amber-50/40 rounded-2xl border border-amber-200/70 space-y-4">
                 <div className="flex items-center justify-between border-b border-amber-200/50 pb-3">
                   <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
@@ -1156,6 +1158,12 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
                   <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-bold text-[10px] rounded-full uppercase">
                     Status: Unpaid
                   </span>
+                </div>
+
+                <div className="p-4 bg-slate-900 rounded-xl text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-amber-300 font-semibold">Order Total</p>
+                  <p className="text-3xl font-bold font-mono text-white mt-0.5">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{productRows.length} product{productRows.length === 1 ? '' : 's'} · {productRows.reduce((a, r) => a + (Number(r.quantity) || 0), 0)} units</p>
                 </div>
 
                 <div className="space-y-2 text-xs text-slate-700">
