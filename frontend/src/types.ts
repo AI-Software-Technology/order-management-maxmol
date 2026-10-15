@@ -93,6 +93,7 @@ export interface Vendor {
   total_order_value?: number;
   amount_received?: number;
   pending_amount?: number;
+  credit_balance?: number;
 }
 
 export interface OrderItem {

@@ -1,11 +1,12 @@
 // Packing Management: check availability -> pack -> deliver ( or hand over to dispatch )
-const { Order, OrderItem, Vendor, User, Role } = require('../models');
+const { Order, OrderItem, Vendor, User, Role, Delivery } = require('../models');
 const { logActivity, sendNotification, addHistory } = require('../utils/audit');
-const { toId, like, nowStr, addDateRange, sumBy, uniq } = require('../utils/helpers');
+const { toId, like, nowStr, round2, inr, addDateRange, sumBy, uniq } = require('../utils/helpers');
 const {
   loadOrderRefs, loadItemsByOrder, loadProductsFor, resolveIdsByIdOrName, idsMatching, isActive,
 } = require('../utils/queries');
 const { findOrder } = require('./order.controller');
+const { recalcOrderLedger } = require('./payment.controller');
 
 // Sets produced / dispatched / delivered quantity = ordered quantity for every line
 async function fillItemQuantities(orderId, fields) {
@@ -130,7 +131,7 @@ exports.listOrders = async (req, res) => {
       id: o.id, order_number: o.order_number, order_status: o.order_status, production_status: o.production_status,
       vendor_id: o.vendor_id, sales_person_id: o.sales_person_id,
       packing_status: displayPackingStatus(o),
-      packing_notes: o.packing_notes,
+      packing_notes: o.packing_notes, delivery_status: o.delivery_status,
       required_delivery_date: o.required_delivery_date, created_at: o.created_at, delivered_at: o.delivered_at,
       delivered_by_name: o.delivered_by_name, grand_total: o.grand_total,
       vendor_name: refs.vendors.get(o.vendor_id)?.company_name ?? null,
@@ -142,6 +143,7 @@ exports.listOrders = async (req, res) => {
         const p = products.get(i.product_id);
         return {
           id: i.id, product_id: i.product_id, sku: i.sku, product_name: i.product_name, unit: i.unit, quantity: i.quantity,
+          delivered_quantity: i.delivered_quantity || 0, rate: i.rate,
           item_availability: i.item_availability ?? 'AVAILABLE',
           product_image: p?.image_url ?? null, item_colour: p?.item_colour ?? null,
           brand_name: p?.brand_name ?? null, category_name: p?.category_name ?? null,
@@ -221,7 +223,9 @@ exports.completePacking = async (req, res) => {
   res.json({ message: 'Packing completed successfully! Status is Packed. Click DELIVER to mark Delivered.', packing_status: 'PACKED' });
 };
 
-// Action 4: Direct delivery ( Packed -> DELIVER button -> Delivered )
+// Action 4: Delivery ( Packed -> DELIVER -> full or partial shipment )
+// body: { mode: 'FULL' | 'PARTIAL', items: [{ item_id, quantity }] }   ( items only for PARTIAL )
+// Every delivery is one shipment and gets its own invoice for exactly the units sent.
 exports.deliver = async (req, res) => {
   const user = req.user;
   const order = await findOrder(req.params.id);
@@ -239,14 +243,175 @@ exports.deliver = async (req, res) => {
     return res.status(403).json({ error: 'Access denied: You do not have permission to mark orders as Delivered' });
   }
 
-  await fillItemQuantities(order.id, ['produced_quantity', 'dispatched_quantity', 'delivered_quantity']);
-  const payload = await markDelivered(order, user);
+  const mode = String(req.body?.mode || 'FULL').toUpperCase() === 'PARTIAL' ? 'PARTIAL' : 'FULL';
+  const orderItems = await OrderItem.rows({ order_id: order.id }, { sort: { id: 1 } });
+  const remainingOf = (it) => Math.max(0, it.quantity - (it.delivered_quantity || 0));
+  const itemMap = new Map(orderItems.map((it) => [it.id, it]));
 
-  await logActivity(user.id, 'ORDER_DELIVERED', 'order', order.order_number, `${user.name} marked order ${order.order_number} as Delivered`);
-  await sendNotification(order.sales_person_id, null, 'Order Delivered', `Order ${order.order_number} has been Delivered!`, 'success', order.id);
-  await sendNotification(null, 'admin', 'Order Delivered', `Order ${order.order_number} delivered by ${user.name}`, 'info', order.id);
+  // ---- which units go in this shipment ----
+  const lines = [];
+  if (mode === 'PARTIAL') {
+    const requested = req.body?.items;
+    if (!Array.isArray(requested) || !requested.length) {
+      return res.status(400).json({ error: 'Enter how many units are being delivered for each item' });
+    }
+    for (const r of requested) {
+      const it = itemMap.get(toId(r.item_id));
+      if (!it) continue;
+      const q = Number(r.quantity) || 0;
+      if (q <= 0) continue;
+      if (q > remainingOf(it)) {
+        return res.status(400).json({ error: `Delivered quantity (${q}) exceeds remaining quantity (${remainingOf(it)}) for ${it.product_name}` });
+      }
+      lines.push({ it, quantity: q });
+    }
+  } else {
+    for (const it of orderItems) if (remainingOf(it) > 0) lines.push({ it, quantity: remainingOf(it) });
+  }
+  if (!lines.length) return res.status(400).json({ error: 'No units to deliver. Enter a quantity above 0.' });
 
-  res.json(payload);
+  const shipQty = sumBy(lines, (l) => l.quantity);
+  const isFull = orderItems.every((it) => {
+    const add = lines.find((l) => l.it.id === it.id)?.quantity || 0;
+    return (it.delivered_quantity || 0) + add >= it.quantity;
+  });
+
+  // ---- invoice for THIS shipment only ( qty x rate, same GST split as the order ) ----
+  const isNonGst = order.tax_type === 'NON_GST';
+  const invoiceTotal = round2(sumBy(lines, (l) => round2(l.quantity * l.it.rate)));
+  const subtotal = isNonGst ? invoiceTotal : round2(invoiceTotal / 1.18);
+  const taxAmount = isNonGst ? 0 : round2(invoiceTotal - subtotal);
+  const shipmentNo = (await Delivery.count({ order_id: order.id })) + 1;
+  const invoiceNumber = `${String(order.order_number).replace('ORD-', 'INV-')}-${shipmentNo}`;
+  const today = new Date().toISOString().slice(0, 10);
+
+  await Delivery.insert({
+    order_id: order.id,
+    delivery_date: today,
+    delivered_quantity: shipQty,
+    received_by: user.name,
+    notes: isFull ? (shipmentNo > 1 ? 'Final shipment' : 'Full delivery') : 'Partial delivery',
+    items: lines.map((l) => ({ order_item_id: l.it.id, quantity: l.quantity })),
+    shipment_no: shipmentNo,
+    invoice_number: invoiceNumber,
+    is_partial: isFull ? 0 : 1,
+    tax_type: isNonGst ? 'NON_GST' : 'GST_18',
+    subtotal, tax_amount: taxAmount, invoice_total: invoiceTotal,
+    created_by_id: user.id,
+  });
+
+  await OrderItem.bulkWrite(
+    lines.map((l) => ({
+      updateOne: {
+        filter: { id: l.it.id },
+        update: {
+          $inc: { dispatched_quantity: l.quantity, delivered_quantity: l.quantity },
+          $set: { produced_quantity: Math.max(l.it.produced_quantity || 0, (l.it.delivered_quantity || 0) + l.quantity) },
+        },
+      },
+    }))
+  );
+
+  let payload;
+  if (isFull) {
+    payload = await markDelivered(order, user);
+    await Order.updateOne({ id: order.id }, { $set: { dispatch_status: 'FULLY_DISPATCHED', dispatched_at: nowStr() } });
+  } else {
+    const stamp = nowStr();
+    await Order.updateOne(
+      { id: order.id },
+      { $set: { delivery_status: 'PARTIALLY_DELIVERED', dispatch_status: 'PARTIALLY_DISPATCHED', dispatched_at: stamp, updated_at: stamp } }
+    );
+    await addHistory(order.id, 'Partial Delivery', order.delivery_status, 'PARTIALLY_DELIVERED',
+      `${shipQty} unit(s) delivered by ${user.name}. Invoice ${invoiceNumber} = ₹${inr(invoiceTotal)}. Remaining units will go in the next shipment.`, user.id);
+    payload = { message: 'Partial delivery recorded. Remaining units stay open for the next shipment.', order_status: order.order_status };
+  }
+
+  const pendingUnits = sumBy(orderItems, (it) => remainingOf(it)) - shipQty;
+  await logActivity(user.id, isFull ? 'ORDER_DELIVERED' : 'ORDER_PARTIALLY_DELIVERED', 'order', order.order_number,
+    `${user.name} delivered ${shipQty} unit(s) of ${order.order_number} (${isFull ? 'complete' : 'partial'}), invoice ${invoiceNumber}`);
+  await sendNotification(order.sales_person_id, null, isFull ? 'Order Delivered' : 'Order Partially Delivered',
+    isFull ? `Order ${order.order_number} has been Delivered!` : `Order ${order.order_number}: ${shipQty} unit(s) delivered, ${pendingUnits} still pending`,
+    isFull ? 'success' : 'info', order.id);
+  await sendNotification(null, 'admin', isFull ? 'Order Delivered' : 'Order Partially Delivered',
+    `Order ${order.order_number} ${isFull ? 'delivered' : 'partially delivered'} by ${user.name}`, 'info', order.id);
+
+  res.json({
+    ...payload,
+    is_partial: !isFull,
+    delivery_status: isFull ? 'DELIVERED' : 'PARTIALLY_DELIVERED',
+    shipment_no: shipmentNo,
+    invoice_number: invoiceNumber,
+    invoice_total: invoiceTotal,
+    delivered_units: shipQty,
+    pending_units: Math.max(0, pendingUnits),
+  });
+};
+
+// POST /api/orders/:id/close-short   { reason? }
+// Partially delivered order: customer does not want the remaining units.
+// Remaining units are cancelled, order total drops to what was delivered, order is closed as Delivered,
+// and any cash received above the new total moves to the party's credit automatically.
+exports.closeShort = async (req, res) => {
+  const user = req.user;
+  if (!['super_admin', 'admin', 'accounts'].includes(user.role_slug)) {
+    return res.status(403).json({ error: 'Only Admin or Accounts can cancel the remaining units' });
+  }
+  const order = await findOrder(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(order.order_status)) {
+    return res.status(400).json({ error: 'This order is already closed' });
+  }
+
+  const items = await OrderItem.rows({ order_id: order.id }, { sort: { id: 1 } });
+  const deliveredUnits = sumBy(items, (i) => i.delivered_quantity);
+  const pendingUnits = sumBy(items, (i) => Math.max(0, i.quantity - (i.delivered_quantity || 0)));
+  if (deliveredUnits <= 0) {
+    return res.status(400).json({ error: 'Nothing delivered yet. Cancel the whole order instead.' });
+  }
+  if (pendingUnits <= 0) return res.status(400).json({ error: 'No remaining units to cancel' });
+
+  // Shrink every line to what was actually delivered ( lines with 0 delivered are removed )
+  const kept = items.filter((i) => (i.delivered_quantity || 0) > 0);
+  await OrderItem.deleteMany({ order_id: order.id, id: { $nin: kept.map((i) => i.id) } });
+  await OrderItem.bulkWrite(kept.map((i) => ({
+    updateOne: {
+      filter: { id: i.id },
+      update: { $set: { quantity: i.delivered_quantity, line_amount: round2(i.delivered_quantity * i.rate), produced_quantity: i.delivered_quantity, dispatched_quantity: i.delivered_quantity } },
+    },
+  })));
+
+  const isNonGst = order.tax_type === 'NON_GST';
+  const grandTotal = round2(sumBy(kept, (i) => round2(i.delivered_quantity * i.rate)));
+  const subtotal = isNonGst ? grandTotal : round2(grandTotal / 1.18);
+  const oldTotal = order.grand_total;
+  const reason = String(req.body?.reason || '').trim() || 'Customer did not want the remaining units';
+  const stamp = nowStr();
+
+  await Order.updateOne({ id: order.id }, { $set: {
+    grand_total: grandTotal, subtotal, tax_amount: isNonGst ? 0 : round2(grandTotal - subtotal),
+    order_status: 'DELIVERED', delivery_status: 'DELIVERED', dispatch_status: 'FULLY_DISPATCHED', packing_status: 'PACKED',
+    delivered_at: stamp, delivered_by_id: user.id, delivered_by_name: user.name, updated_at: stamp,
+  } });
+
+  // Ledger recalculation moves received cash above the new total into party credit
+  const fresh = await Order.row({ id: order.id });
+  const ledger = await recalcOrderLedger(fresh, { userId: user.id });
+
+  await addHistory(order.id, 'Remaining Units Cancelled', order.order_status, 'DELIVERED',
+    `${pendingUnits} unit(s) cancelled by ${user.name} (${reason}). Order total ₹${inr(oldTotal)} -> ₹${inr(grandTotal)}.${ledger.excess > 0 ? ` ₹${inr(ledger.excess)} advance saved as party credit.` : ''}`, user.id);
+  await logActivity(user.id, 'ORDER_CLOSED_SHORT', 'order', order.order_number,
+    `${user.name} cancelled ${pendingUnits} remaining unit(s) of ${order.order_number}; ₹${inr(ledger.excess)} moved to party credit`);
+  await sendNotification(order.sales_person_id, null, 'Remaining Units Cancelled',
+    `Order ${order.order_number} closed with ${deliveredUnits} unit(s). ₹${inr(ledger.excess)} saved as party credit.`, 'info', order.id);
+
+  res.json({
+    message: ledger.excess > 0
+      ? `Remaining ${pendingUnits} unit(s) cancelled. ₹${inr(ledger.excess)} saved as party credit.`
+      : `Remaining ${pendingUnits} unit(s) cancelled. Order closed.`,
+    cancelled_units: pendingUnits, new_total: grandTotal, credit_added: ledger.excess,
+    amount_received: ledger.received, pending_amount: ledger.pending,
+  });
 };
 
 // Hand over to Dispatch team

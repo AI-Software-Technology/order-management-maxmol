@@ -17,6 +17,7 @@ const user = require('../controllers/user.controller');
 const role = require('../controllers/role.controller');
 const notification = require('../controllers/notification.controller');
 const bill = require('../controllers/bill.controller');
+const credit = require('../controllers/credit.controller');
 const settings = require('../controllers/settings.controller');
 
 const router = express.Router();
@@ -78,6 +79,7 @@ router.post('/orders/:id/toggle-item-availability', auth, h(packing.toggleItemAv
 router.post('/orders/:id/start-packing', auth, h(packing.startPacking));
 router.post('/orders/:id/complete-packing', auth, h(packing.completePacking));
 router.post('/orders/:id/deliver', auth, h(packing.deliver));
+router.post('/orders/:id/close-short', auth, h(packing.closeShort));
 router.post('/orders/:id/handover-dispatch', auth, h(packing.handoverDispatch));
 router.post('/orders/:id/packing-action', auth, h(packing.packingAction));
 router.post('/orders/:id/start-production', auth, h(packing.legacyStartProduction));
@@ -99,6 +101,8 @@ router.post('/payments/add', auth, h(payment.create));
 router.post('/payments/:id/verify', auth, can('payments:verify'), h(payment.verify));
 router.post('/payments/:id/reject', auth, can('payments:verify'), h(payment.reject));
 router.put('/payments/:id', auth, h(payment.update));
+router.post('/orders/:id/adjust-credit', auth, h(credit.adjustForOrder));
+router.get('/vendors/:id/credit', auth, h(credit.vendorCredit));
 
 // ----------------------------- SALES PERSONS -----------------------------
 router.get('/sales-persons', auth, h(salesPerson.list));

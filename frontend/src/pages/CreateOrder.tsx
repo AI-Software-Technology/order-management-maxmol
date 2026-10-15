@@ -88,6 +88,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
   const [orderNotes, setOrderNotes] = useState<string>('');
   const [paymentTerms, setPaymentTerms] = useState<string>('Credit 30 Days');
+  const [useCredit, setUseCredit] = useState<boolean>(false);
 
   // Submit / Success state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -380,6 +381,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
         special_instructions: specialInstructions,
         notes: orderNotes,
         payment_terms: paymentTerms,
+        use_credit: useCredit,
         tax_type: taxType,
         items: productRows.map(r => ({
           product_id: r.product_id,
@@ -1187,6 +1189,21 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
                     <span className="font-mono text-sm">₹{pendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
+
+                {Number((selectedVendor as any)?.credit_balance || 0) > 0 && (
+                  <label className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 flex items-start gap-2.5 text-xs text-indigo-900 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useCredit}
+                      onChange={(e) => setUseCredit(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <strong>Adjust party credit:</strong> {selectedVendor?.company_name} has ₹{Number((selectedVendor as any).credit_balance).toLocaleString('en-IN')} saved credit.
+                      Tick to use up to ₹{Math.min(Number((selectedVendor as any).credit_balance), grandTotal).toLocaleString('en-IN')} against this order. Leave unticked to keep it for later.
+                    </span>
+                  </label>
+                )}
 
                 <div className="p-3 bg-amber-100/60 rounded-xl border border-amber-200 flex items-start gap-2.5 text-[11px] text-amber-900">
                   <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />

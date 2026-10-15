@@ -15,6 +15,7 @@ module.exports = {
   Dispatch: require('./Dispatch'),
   Delivery: require('./Delivery'),
   Payment: require('./Payment'),
+  CreditLedger: require('./CreditLedger'),
   OrderStatusHistory: require('./OrderStatusHistory'),
   ActivityLog: require('./ActivityLog'),
   Notification: require('./Notification'),

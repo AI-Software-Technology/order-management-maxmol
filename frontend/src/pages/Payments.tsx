@@ -206,11 +206,6 @@ export const Payments: React.FC<{ onNavigate: (page: string) => void }> = ({ onN
       return;
     }
 
-    if (selectedOrderData && amt > selectedOrderData.pending_amount + 0.01) {
-      setFormError(`Payment amount (₹${amt.toLocaleString('en-IN')}) cannot exceed the pending order amount (₹${selectedOrderData.pending_amount.toLocaleString('en-IN')}).`);
-      return;
-    }
-
     // Reference number check
     let refNum = (paymentForm.reference_number || '').trim();
     if (paymentForm.payment_mode !== 'Cash' && !refNum) {
@@ -1141,12 +1136,16 @@ export const Payments: React.FC<{ onNavigate: (page: string) => void }> = ({ onN
                     required
                     min="1"
                     step="any"
-                    max={selectedOrderData?.pending_amount}
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                     className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-bold text-emerald-700 text-sm focus:border-emerald-500"
                     placeholder="e.g. 25000"
                   />
+                  {selectedOrderData && Number(paymentForm.amount) > Number(selectedOrderData.pending_amount) + 0.01 && (
+                    <p className="mt-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-1.5">
+                      ₹{(Number(paymentForm.amount) - Number(selectedOrderData.pending_amount)).toLocaleString('en-IN')} is extra. It will be saved as this party's credit once Accounts verifies it.
+                    </p>
+                  )}
                 </div>
 
                 <div>

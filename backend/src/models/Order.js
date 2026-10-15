@@ -30,6 +30,8 @@ module.exports = defineModel('Order', 'orders', {
   grand_total: num(0),
   amount_received: num(0),
   pending_amount: num(0),
+  // Cash received above grand_total (already moved to the party's credit balance)
+  excess_amount: num(0),
 
   required_delivery_date: str(),
   delivery_address: str(),

@@ -28,6 +28,70 @@ import { getToken } from "../lib/session.js";
 import { StateSelect } from "../components/StateSelect.js";
 import { stateForCity } from "../lib/india.js";
 
+
+// Party credit = extra cash received above order totals, kept for adjusting on later orders
+const PartyCreditPanel: React.FC<{ vendorId: number; balance: number }> = ({ vendorId, balance }) => {
+  const [ledger, setLedger] = useState<any[]>([]);
+  const [live, setLive] = useState<number>(balance);
+
+  useEffect(() => {
+    let off = false;
+    (async () => {
+      try {
+        const r = await apiFetch(`/api/vendors/${vendorId}/credit`);
+        if (!r.ok) return;
+        const d = await r.json();
+        if (off) return;
+        setLedger(d.ledger || []);
+        setLive(Number(d.credit_balance) || 0);
+      } catch { /* optional info */ }
+    })();
+    return () => { off = true; };
+  }, [vendorId]);
+
+  return (
+    <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 text-xs space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-indigo-700 font-semibold">Party Credit (Advance / Extra Cash)</p>
+          <p className="text-[10px] text-indigo-500">Adjustable against this party's orders</p>
+        </div>
+        <p className="text-lg font-bold text-indigo-800 font-mono">₹{live.toLocaleString("en-IN")}</p>
+      </div>
+      {ledger.length > 0 && (
+        <div className="overflow-x-auto bg-white rounded-lg border border-indigo-100">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[10px] text-slate-500 bg-slate-50">
+                <th className="py-1.5 px-2">Date</th>
+                <th className="py-1.5 px-2">Type</th>
+                <th className="py-1.5 px-2">Order</th>
+                <th className="py-1.5 px-2 text-right">Amount</th>
+                <th className="py-1.5 px-2 text-right">Balance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {ledger.map((l) => (
+                <tr key={l.id}>
+                  <td className="py-1.5 px-2 text-slate-500">{String(l.created_at).slice(0, 10)}</td>
+                  <td className={`py-1.5 px-2 font-bold ${l.type === "CREDIT" ? "text-emerald-700" : "text-rose-700"}`}>
+                    {l.type === "CREDIT" ? "Saved" : "Adjusted"}
+                  </td>
+                  <td className="py-1.5 px-2 font-mono">{l.order_number || "—"}</td>
+                  <td className="py-1.5 px-2 text-right font-mono">
+                    {l.type === "CREDIT" ? "+" : "-"}₹{Number(l.amount).toLocaleString("en-IN")}
+                  </td>
+                  <td className="py-1.5 px-2 text-right font-mono">₹{Number(l.balance_after).toLocaleString("en-IN")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Vendors: React.FC<{
   onNavigate: (page: string) => void;
   initialVendorId?: string | number;
@@ -521,7 +585,7 @@ export const Vendors: React.FC<{
                 </div>
 
                 {/* Financial overview */}
-                <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-4 gap-2 text-center text-xs">
                   <div className="bg-slate-50 p-1.5 rounded">
                     <p className="text-[10px] text-slate-400">Orders</p>
                     <p className="font-bold text-slate-900">
@@ -538,6 +602,12 @@ export const Vendors: React.FC<{
                     <p className="text-[10px] text-slate-400">Balance</p>
                     <p className="font-bold text-rose-600 font-mono">
                       ₹{((v.pending_amount || 0) / 1000).toFixed(0)}k
+                    </p>
+                  </div>
+                  <div className="bg-indigo-50 p-1.5 rounded" title="Extra cash saved for this party">
+                    <p className="text-[10px] text-indigo-500">Credit</p>
+                    <p className="font-bold text-indigo-700 font-mono">
+                      ₹{(Number(v.credit_balance || 0)).toLocaleString("en-IN")}
                     </p>
                   </div>
                 </div>
@@ -737,6 +807,11 @@ export const Vendors: React.FC<{
                 </p>
               </div>
             </div>
+
+            <PartyCreditPanel
+              vendorId={selectedVendorProfile.vendor.id}
+              balance={Number((selectedVendorProfile.vendor as any).credit_balance || 0)}
+            />
 
             {/* Address & Tax info */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">

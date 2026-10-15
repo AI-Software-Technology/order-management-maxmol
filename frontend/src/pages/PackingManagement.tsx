@@ -1,3 +1,4 @@
+import { DeliverModal } from '../components/DeliverModal.js';
 import React, { useState, useEffect } from 'react';
 import {
   PackageCheck, CheckCircle2, Clock, AlertTriangle, ArrowRight,
@@ -232,32 +233,10 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
   const [slipOrder, setSlipOrder] = useState<any | null>(null);
 
   const handlePrintSlip = (ord: any) => printPackingSlip(ord);
-  const confirmDeliver = async () => {
-    if (!orderToDeliver) return;
-    setActionLoading(true);
-    try {
-      const token = getToken();
-      const res = await apiFetch(`/api/orders/${orderToDeliver.id}/deliver`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setOrderToDeliver(null);
-        setSelectedOrder(null);
-        await fetchOrders();
-      } else {
-        alert(data.error || 'Failed to deliver order');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error marking order as delivered');
-    } finally {
-      setActionLoading(false);
-    }
+  const onDeliverDone = async () => {
+    setOrderToDeliver(null);
+    setSelectedOrder(null);
+    await fetchOrders();
   };
 
   useEffect(() => {
@@ -277,8 +256,9 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
     };
   }, [slipOrder]);
 
-  const fetchOrders = async (range: DateRange = dateRange, sp = selectedSalesPerson, v = selectedVendor) => {
+  const fetchOrders = async (range: DateRange = dateRange, sp = selectedSalesPerson, v = selectedVendor): Promise<any[] | null> => {
     setLoading(true);
+    let fresh: any[] | null = null;
     try {
       const token = getToken();
       const params = new URLSearchParams();
@@ -293,6 +273,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
       if (res.ok) {
         const json = await res.json();
         setOrders(json.orders || []);
+        fresh = json.orders || [];
         if (json.salesPersons && json.salesPersons.length > 0) {
           setSalesPersonsList(json.salesPersons);
         }
@@ -305,6 +286,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
     } finally {
       setLoading(false);
     }
+    return fresh;
   };
 
   useEffect(() => {
@@ -352,12 +334,11 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
         if (action === 'MARK_ON_HOLD') {
           setHoldModalOpen(false);
         }
-        await fetchOrders();
-        // Refresh active order detail if currently opened
-        if (selectedOrder && selectedOrder.id === orderId) {
-          const updated = orders.find(o => o.id === orderId);
-          if (updated) setSelectedOrder(updated);
-          else setSelectedOrder(null);
+        // Reload list, then move the open popup to the order's NEW state ( next step button shows up )
+        const freshOrders = await fetchOrders();
+        if (selectedOrder && selectedOrder.id === orderId && freshOrders) {
+          const updated = freshOrders.find((o: any) => o.id === orderId);
+          setSelectedOrder(updated || null);
         }
       } else {
         alert(data.error || 'Failed to update packing status');
@@ -979,59 +960,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
         </div>
       )}
 
-      {/* SIMPLE CONFIRMATION MODAL BEFORE DELIVERY (No forms, vehicle or LR needed) */}
-      {orderToDeliver && (
-        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                Confirm Order Delivery
-              </h3>
-              <button onClick={() => setOrderToDeliver(null)}>
-                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-              </button>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
-              <p className="text-slate-600">
-                Order: <strong className="text-slate-900 font-mono">#{orderToDeliver.order_number}</strong>
-              </p>
-              <p className="text-slate-600">
-                Customer: <strong className="text-slate-900">{orderToDeliver.vendor_name}</strong>
-              </p>
-              <p className="text-slate-600">
-                Quantity: <strong className="text-slate-900">{orderToDeliver.total_qty || orderToDeliver.items?.reduce((a: number, b: any) => a + (b.quantity || 0), 0) || 0} units</strong>
-              </p>
-            </div>
-
-            <p className="text-xs text-slate-700 leading-relaxed">
-              Are you sure you want to mark Order <strong className="text-slate-900">#{orderToDeliver.order_number}</strong> as <span className="text-emerald-700 font-bold uppercase">Delivered</span>?
-            </p>
-            <p className="text-[11px] text-slate-400">
-              This will directly update the order status to Delivered. Packing count will decrease and Delivered count will increase.
-            </p>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setOrderToDeliver(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeliver}
-                disabled={actionLoading}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
-              >
-                {actionLoading ? 'Processing...' : 'Confirm Delivery'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeliverModal order={orderToDeliver} onClose={() => setOrderToDeliver(null)} onDone={onDeliverDone} />
 
       {/* MARK ON HOLD MODAL */}
       {holdModalOpen && selectedOrder && (

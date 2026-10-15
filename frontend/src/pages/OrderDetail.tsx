@@ -1,3 +1,4 @@
+import { DeliverModal } from "../components/DeliverModal.js";
 import React, { useState, useEffect } from "react";
 import {
   FileText,
@@ -76,6 +77,8 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   // Modals for actions
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
   const [showDeliverConfirm, setShowDeliverConfirm] = useState<boolean>(false);
+  const [partyCredit, setPartyCredit] = useState<number>(0);
+  const [creditBusy, setCreditBusy] = useState<boolean>(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [showAddPaymentModal, setShowAddPaymentModal] =
     useState<boolean>(false);
@@ -90,30 +93,55 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
 
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
-  const handleDeliverOrder = async () => {
+  const handleDeliverDone = async () => {
+    setShowDeliverConfirm(false);
+    await fetchOrderDetail();
+  };
+
+  const handleCloseShort = async (pendingUnits: number, held: number) => {
     if (!order) return;
-    setActionLoading(true);
+    const msg = `Cancel the remaining ${pendingUnits} unit(s)? Order total will drop to the delivered value and the order will close as Delivered.` +
+      (held > 0 ? ` ₹${held.toLocaleString("en-IN")} advance will be saved as ${order.vendor_name}'s party credit.` : "");
+    if (!window.confirm(msg)) return;
+    setCreditBusy(true);
     try {
-      const token = getToken();
-      const res = await apiFetch(`/api/orders/${order.id}/deliver`, {
+      const r = await apiFetch(`/api/orders/${order.id}/close-short`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setShowDeliverConfirm(false);
-        await fetchOrderDetail();
-      } else {
-        alert(data.error || "Failed to deliver order");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error marking order as delivered");
+      const d = await r.json();
+      alert(d.message || d.error || "Done");
+      await fetchOrderDetail();
     } finally {
-      setActionLoading(false);
+      setCreditBusy(false);
+    }
+  };
+
+  const loadPartyCredit = async (vendorId?: number) => {
+    if (!vendorId) return;
+    try {
+      const r = await apiFetch(`/api/vendors/${vendorId}/credit`);
+      if (r.ok) setPartyCredit(Number((await r.json()).credit_balance) || 0);
+    } catch { /* credit is optional info */ }
+  };
+
+  const handleAdjustCredit = async () => {
+    if (!order) return;
+    const use = Math.min(partyCredit, Number(order.pending_amount) || 0);
+    if (!window.confirm(`Adjust ₹${use.toLocaleString('en-IN')} from ${order.vendor_name}'s saved credit against this order?`)) return;
+    setCreditBusy(true);
+    try {
+      const r = await apiFetch(`/api/orders/${order.id}/adjust-credit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const d = await r.json();
+      if (!r.ok) alert(d.error || 'Could not adjust credit');
+      await fetchOrderDetail();
+    } finally {
+      setCreditBusy(false);
     }
   };
 
@@ -147,6 +175,10 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   useEffect(() => {
     fetchOrderDetail();
   }, [orderId]);
+
+  useEffect(() => {
+    loadPartyCredit((order as any)?.vendor_id);
+  }, [(order as any)?.vendor_id, (order as any)?.amount_received]);
 
   if (loading || !order) {
     return (
@@ -1057,6 +1089,41 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                     <span>DELIVER ORDER</span>
                   </button>
                 )}
+              {/* Advance held for units not yet shipped */}
+              {(() => {
+                const deliveredValue = items.reduce((a, it: any) => a + (Number(it.delivered_quantity) || 0) * (Number(it.rate) || 0), 0);
+                const pendingUnits = items.reduce((a, it: any) => a + Math.max(0, it.quantity - (Number(it.delivered_quantity) || 0)), 0);
+                const received = Number(order.amount_received) || 0;
+                const held = Math.max(0, Math.min(received, Number(order.grand_total) || 0) - deliveredValue);
+                if (pendingUnits <= 0 || deliveredValue <= 0) return null;
+                return (
+                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-300 text-xs space-y-1">
+                    <p className="font-bold text-amber-900">
+                      Partial delivery: {pendingUnits} unit(s) still to ship
+                    </p>
+                    <p className="text-amber-800">
+                      Delivered value ₹{deliveredValue.toLocaleString("en-IN")} · Received ₹{received.toLocaleString("en-IN")}
+                      {held > 0 && (
+                        <> · <strong>₹{held.toLocaleString("en-IN")} advance is held on this order</strong> and covers the remaining units.</>
+                      )}
+                    </p>
+                    <p className="text-amber-700">
+                      To ship the rest, click <strong>DELIVER ORDER</strong> and choose Full Dispatch (all remaining) or Partial again.
+                    </p>
+                    {(isAdmin || isAccounts) && (
+                      <button
+                        type="button"
+                        disabled={creditBusy}
+                        onClick={() => handleCloseShort(pendingUnits, held)}
+                        className="mt-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold rounded-lg"
+                      >
+                        {held > 0 ? "Cancel remaining units & release advance to party credit" : "Cancel remaining units & close order"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Delivery Destination & Contact Details */}
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1162,6 +1229,15 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                     this order.
                   </p>
                 </div>
+                {order.pending_amount > 0 && partyCredit > 0 && (
+                  <button
+                    onClick={handleAdjustCredit}
+                    disabled={creditBusy}
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold text-xs rounded-lg transition"
+                  >
+                    {creditBusy ? "Adjusting..." : `Adjust Party Credit (₹${partyCredit.toLocaleString("en-IN")})`}
+                  </button>
+                )}
                 {order.pending_amount > 0 && (
                   <button
                     onClick={() => setShowAddPaymentModal(true)}
@@ -1514,70 +1590,12 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
         </div>
       )}
 
-      {/* Simple Confirmation Modal Before Delivery */}
       {showDeliverConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                Confirm Order Delivery
-              </h3>
-              <button onClick={() => setShowDeliverConfirm(false)}>
-                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-              </button>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
-              <p className="text-slate-600">
-                Order:{" "}
-                <strong className="text-slate-900 font-mono">
-                  #{order.order_number}
-                </strong>
-              </p>
-              <p className="text-slate-600">
-                Customer:{" "}
-                <strong className="text-slate-900">{order.vendor_name}</strong>
-              </p>
-              <p className="text-slate-600">
-                Quantity:{" "}
-                <strong className="text-slate-900">{totalQty} units</strong>
-              </p>
-            </div>
-
-            <p className="text-xs text-slate-700 leading-relaxed">
-              Are you sure you want to mark Order{" "}
-              <strong className="text-slate-900">#{order.order_number}</strong>{" "}
-              as{" "}
-              <span className="text-emerald-700 font-bold uppercase">
-                Delivered
-              </span>
-              ?
-            </p>
-            <p className="text-[11px] text-slate-400">
-              This will directly update the order status to Delivered. Packing
-              count will decrease and Delivered count will increase.
-            </p>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowDeliverConfirm(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeliverOrder}
-                disabled={actionLoading}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
-              >
-                {actionLoading ? "Processing..." : "Confirm Delivery"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeliverModal
+          order={{ id: order.id, order_number: order.order_number, vendor_name: order.vendor_name, items: items as any }}
+          onClose={() => setShowDeliverConfirm(false)}
+          onDone={handleDeliverDone}
+        />
       )}
 
       {/* Image Zoom Modal */}

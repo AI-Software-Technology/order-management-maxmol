@@ -17,6 +17,8 @@ module.exports = defineModel('Vendor', 'vendors', {
   pincode: str(),
   assigned_sales_person_id: reqNum(),
   created_by_id: reqNum(),
+  // Advance / excess cash held for this party. Adjustable against future orders.
+  credit_balance: num(0),
   status: str('active'),
   notes: str(),
   created_at: createdAt(),

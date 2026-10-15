@@ -19,8 +19,10 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const [shipmentId, setShipmentId] = useState<number | null>(null);
 
   useEffect(() => {
+    setShipmentId(null);
     if (!isOpen || !billId) {
       setBill(null);
       return;
@@ -58,7 +60,7 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
   if (!isOpen) return null;
 const handlePrint = () => {
   const oldTitle = document.title;
-  if (bill?.invoice_number) document.title = bill.invoice_number;
+  if (shownInvoiceNo) document.title = shownInvoiceNo;
   const restore = () => {
     document.title = oldTitle;
     window.removeEventListener('afterprint', restore);
@@ -67,14 +69,22 @@ const handlePrint = () => {
   window.print();
 };
 
+  const b: any = bill;
+  const shipments: any[] = b?.shipments || [];
+  const shipment = shipments.find((x) => x.id === shipmentId) || null;
+  const shownInvoiceNo: string | undefined = shipment ? shipment.invoice_number : bill?.invoice_number;
+  const shownItems: any[] = shipment ? shipment.items.map((it: any, i: number) => ({ ...it, id: it.order_item_id ?? i })) : (bill?.items || []);
+
   const isNonGst = bill?.tax_type === 'NON_GST';
-  const billAmount = bill ? Number(bill.bill_amount || 0) : 0;
+  const billAmount = shipment ? Number(shipment.bill_amount || 0) : bill ? Number(bill.bill_amount || 0) : 0;
   const taxableAmount = isNonGst ? billAmount : Math.round((billAmount / 1.18) * 100) / 100;
   const gstAmount = isNonGst ? 0 : Math.round((billAmount - taxableAmount) * 100) / 100;
   const cgstAmount = isNonGst ? 0 : Math.round((gstAmount / 2) * 100) / 100;
   const sgstAmount = isNonGst ? 0 : Math.round((gstAmount - cgstAmount) * 100) / 100;
-  const receivedAmount = bill ? Number(bill.received_amount || 0) : 0;
-  const balancePayment = bill ? Math.max(0, Number(bill.balance_payment || (billAmount - receivedAmount))) : 0;
+  const receivedAmount = shipment ? Number(shipment.paid_amount || 0) : bill ? Number(bill.received_amount || 0) : 0;
+  const balancePayment = shipment
+    ? Math.max(0, Number(shipment.balance_amount || 0))
+    : bill ? Math.max(0, Number(bill.balance_payment || (billAmount - receivedAmount))) : 0;
 
   return createPortal(
   <div
@@ -136,7 +146,7 @@ const handlePrint = () => {
                 <span>{isNonGst ? 'Commercial Bill' : 'Tax Invoice'}</span>
                 {bill && (
                   <span className="text-xs text-amber-400 font-mono px-2 py-0.5 bg-slate-800 rounded">
-                    {bill.invoice_number}
+                    {shownInvoiceNo}
                   </span>
                 )}
               </h3>
@@ -230,7 +240,7 @@ const handlePrint = () => {
                       {isNonGst ? 'COMMERCIAL BILL' : 'TAX INVOICE'}
                     </div>
                     <div className="space-y-0.5 text-[11px]">
-                      <p><span className="text-slate-500">Invoice No:</span> <strong className="text-slate-950 font-mono text-sm">{bill.invoice_number}</strong></p>
+                      <p><span className="text-slate-500">Invoice No:</span> <strong className="text-slate-950 font-mono text-sm">{shownInvoiceNo}</strong></p>
                       <p><span className="text-slate-500">Date:</span> <strong>{new Date(bill.invoice_date || bill.order_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></p>
                       <p><span className="text-slate-500">Order ID:</span> <strong>#{bill.order_number}</strong></p>
                       <p><span className="text-slate-500">Tax Type:</span> <strong className={isNonGst ? 'text-amber-700' : 'text-emerald-700'}>{isNonGst ? 'Non-GST' : 'GST (18% Inclusive)'}</strong></p>
@@ -279,6 +289,47 @@ const handlePrint = () => {
                 </div>
               </div>
 
+              {/* Shipment invoices ( partial deliveries ) */}
+              {shipments.length > 0 && (
+                <div className="print:hidden p-3 rounded-xl border border-slate-300 bg-slate-50 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Shipment Invoices</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShipmentId(null)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border ${shipmentId === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}
+                    >
+                      Whole Order
+                    </button>
+                    {shipments.map((sh) => (
+                      <button
+                        key={sh.id}
+                        type="button"
+                        onClick={() => setShipmentId(sh.id)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border ${shipmentId === sh.id ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                      >
+                        {sh.invoice_number} · {sh.delivered_quantity} units{sh.is_partial ? ' (partial)' : ''}
+                      </button>
+                    ))}
+                  </div>
+                  {Number(b.advance_for_pending) > 0 && (
+                    <p className="text-[11px] text-indigo-700 font-semibold">
+                      ₹{Number(b.advance_for_pending).toLocaleString('en-IN')} advance already received will cover the remaining units in the next shipment.
+                    </p>
+                  )}
+                  {(b.pending_items || []).length > 0 && (
+                    <p className="text-[11px] text-amber-700">
+                      Still to ship: {(b.pending_items as any[]).map((p) => `${p.quantity} × ${p.product_name}`).join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+              {shipment && (
+                <p className="text-[11px] font-semibold text-slate-700">
+                  Invoice covers only the {shipment.delivered_quantity} unit(s) shipped in shipment #{shipment.shipment_no}.
+                </p>
+              )}
+
               {/* Items Table */}
               <div className="border border-slate-900 rounded-xl overflow-hidden bill-table-wrap">
                 <table className="w-full text-left border-collapse">
@@ -293,8 +344,8 @@ const handlePrint = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-[11px]">
-                    {bill.items && bill.items.length > 0 ? (
-                      bill.items.map((it, idx) => (
+                    {shownItems.length > 0 ? (
+                      shownItems.map((it: any, idx: number) => (
                         <tr key={it.id || idx} className="hover:bg-slate-50/50">
                           <td className="py-2.5 px-3 text-center text-slate-400">{idx + 1}</td>
                           <td className="py-2.5 px-3 font-medium text-slate-900">
@@ -409,6 +460,12 @@ const handlePrint = () => {
                       <span>Balance Payment Due:</span>
                       <span>₹{balancePayment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
+                    {!shipment && Number(b?.excess_credit) > 0 && (
+                      <div className="flex justify-between text-indigo-700 font-semibold">
+                        <span>Extra paid (saved as party credit):</span>
+                        <span>₹{Number(b.excess_credit).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

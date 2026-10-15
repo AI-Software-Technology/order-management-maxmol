@@ -9,6 +9,8 @@ const {
   isActive, DEFAULT_PRODUCT_IMAGE,
 } = require('../utils/queries');
 
+const { applyCreditToOrder } = require('./credit.controller');
+
 const findOrder = (idParam) => {
   const id = toId(idParam);
   return id === null ? null : Order.row({ id });
@@ -335,7 +337,7 @@ exports.create = async (req, res) => {
   const {
     company_id, vendor_id, items, transportName, transportAddress, booking_station, transport_contact_number,
     required_delivery_date, delivery_address, delivery_contact_person, delivery_contact_number,
-    special_instructions, notes, payment_terms, tax_type = 'GST_18',
+    special_instructions, notes, payment_terms, tax_type = 'GST_18', use_credit = false,
   } = req.body;
 
   if (!company_id || !vendor_id || !items || !Array.isArray(items) || items.length === 0) {
@@ -423,7 +425,20 @@ exports.create = async (req, res) => {
   await logActivity(user.id, 'ORDER_CREATED', 'order', orderNumber, `${user.name} created order ${orderNumber} for ${vendor.company_name} (Total: ₹${inr(totals.grandTotal)})`);
   await sendNotification(null, 'admin', 'New Order Requires Review', `Order ${orderNumber} submitted by ${user.name} for ${vendor.company_name}`, 'warning', id);
 
-  res.json({ order_id: id, order_number: orderNumber, message: 'Order created successfully and submitted for Admin review!' });
+  // Party chose to adjust saved credit against this order
+  let creditApplied = 0;
+  if (use_credit) {
+    const created = await Order.row({ id });
+    const r = await applyCreditToOrder(created, user);
+    if (!r.error) creditApplied = r.applied;
+  }
+
+  res.json({
+    order_id: id, order_number: orderNumber, credit_applied: creditApplied,
+    message: creditApplied > 0
+      ? `Order created. ₹${inr(creditApplied)} adjusted from party credit. Submitted for Admin review!`
+      : 'Order created successfully and submitted for Admin review!',
+  });
 };
 
 // ---------------------------------------------------------------------------

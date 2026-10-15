@@ -3,6 +3,7 @@ const { Order, Payment, Vendor, User, Company, Role } = require('../models');
 const { logActivity, sendNotification, addHistory } = require('../utils/audit');
 const { toId, like, nowStr, round2, addDateRange, sumBy, uniq, inr } = require('../utils/helpers');
 const { resolveIdsByIdOrName, idsMatching, isActive } = require('../utils/queries');
+const { syncOrderExcess } = require('../utils/credit');
 
 const isVerified = (p) => p.is_verified === 1 || p.status === 'VERIFIED';
 
@@ -12,7 +13,7 @@ const findOrderByIdOrNumber = (value) => {
 };
 
 // Sum of verified payments of an order -> updates order ledger fields
-async function recalcOrderLedger(order, { rounded = false } = {}) {
+async function recalcOrderLedger(order, { rounded = false, userId = null } = {}) {
   const verified = await Payment.rows({ order_id: order.id, is_verified: 1 }, { select: 'amount' });
   let received = sumBy(verified, (p) => p.amount);
   let pending = Math.max(0, order.grand_total - received);
@@ -25,11 +26,14 @@ async function recalcOrderLedger(order, { rounded = false } = {}) {
   if (received >= order.grand_total && (!rounded || order.grand_total > 0)) status = 'FULLY_PAID';
   else if (received > 0) status = 'PARTIALLY_PAID';
 
+  // Anything received above the order total is saved as the party's credit
+  const excess = await syncOrderExcess(order, received, userId);
+
   await Order.updateOne(
     { id: order.id },
-    { $set: { amount_received: received, pending_amount: pending, payment_status: status, updated_at: nowStr() } }
+    { $set: { amount_received: received, pending_amount: pending, payment_status: status, excess_amount: excess, updated_at: nowStr() } }
   );
-  return { received, pending, status };
+  return { received, pending, status, excess };
 }
 
 // Adds order / party / user display fields to payment rows
@@ -300,11 +304,8 @@ async function submitPayment(req, res, targetOrderId) {
   if (currentPending <= 0) {
     return res.status(400).json({ error: 'This order is already fully paid. No pending balance remains.' });
   }
-  if (paymentAmt > currentPending + 0.01) {
-    return res.status(400).json({
-      error: `Payment amount (₹${inr(paymentAmt)}) exceeds the pending order amount (₹${inr(currentPending)}).`,
-    });
-  }
+  // Extra cash is allowed: the part above the pending amount is saved as party credit once Accounts verifies it
+  const excessAmt = Math.max(0, round2(paymentAmt - currentPending));
 
   const id = await Payment.nextId();
   const payNumber = `PAY-${10000 + id}`;
@@ -319,7 +320,7 @@ async function submitPayment(req, res, targetOrderId) {
     reference_number: reference_number || `TXN-${Date.now().toString().slice(-6)}`,
     proof_url: proof_url || null,
     status: 'PENDING_VERIFICATION',
-    notes: notes || null,
+    notes: excessAmt > 0 ? `${notes ? notes + ' | ' : ''}Includes ₹${inr(excessAmt)} extra - will be saved as party credit` : notes || null,
     is_verified: 0,
     received_by_id: user.id,
   });
@@ -334,7 +335,10 @@ async function submitPayment(req, res, targetOrderId) {
 
   return res.json({
     success: true,
-    message: 'Payment submitted successfully and sent for Accounts verification.',
+    message: excessAmt > 0
+      ? `Payment submitted. ₹${inr(excessAmt)} is extra and will be saved as party credit after Accounts verification.`
+      : 'Payment submitted successfully and sent for Accounts verification.',
+    excess_amount: excessAmt,
     payment_id: id,
     payment_number: payNumber,
     status: 'PENDING_VERIFICATION',
@@ -358,9 +362,9 @@ exports.verify = async (req, res) => {
   await Payment.updateOne({ id }, { $set: { is_verified: 1, status: 'VERIFIED', verified_by_id: user.id, verified_at: nowStr() } });
 
   const order = await Order.row({ id: payment.order_id });
-  const ledger = await recalcOrderLedger(order);
+  const ledger = await recalcOrderLedger(order, { userId: user.id });
 
-  await addHistory(order.id, 'Payment Verified', order.payment_status, ledger.status, `Accounts verified payment of ₹${inr(payment.amount)} (${payment.payment_mode} - Ref: ${payment.reference_number || 'N/A'}). Ledger updated.`, user.id);
+  await addHistory(order.id, 'Payment Verified', order.payment_status, ledger.status, `Accounts verified payment of ₹${inr(payment.amount)} (${payment.payment_mode} - Ref: ${payment.reference_number || 'N/A'}). Ledger updated.${ledger.excess > 0 ? ` Extra ₹${inr(ledger.excess)} saved as party credit.` : ''}`, user.id);
   await logActivity(user.id, 'PAYMENT_VERIFIED', 'payment', payment.payment_number, `${user.name} approved and verified payment ${payment.payment_number} of ₹${inr(payment.amount)}`);
   await sendNotification(payment.received_by_id, null, 'Payment Approved', `Your submitted payment of ₹${inr(payment.amount)} for order ${order.order_number} has been verified by Accounts`, 'success', order.id);
 
@@ -369,6 +373,7 @@ exports.verify = async (req, res) => {
     amount_received: ledger.received,
     pending_amount: ledger.pending,
     payment_status: ledger.status,
+    excess_amount: ledger.excess,
   });
 };
 
@@ -430,6 +435,10 @@ exports.update = async (req, res) => {
     }
   }
 
+  if (payment.payment_mode === 'Party Credit') {
+    return res.status(400).json({ error: 'Party credit adjustments cannot be edited.' });
+  }
+
   const { amount, payment_date, payment_mode, reference_number, proof_url, notes } = req.body;
   const newAmount = amount !== undefined ? Number(amount) : payment.amount;
   if (isNaN(newAmount) || newAmount <= 0) {
@@ -458,7 +467,7 @@ exports.update = async (req, res) => {
   );
 
   // Order Total -> Verified Received -> Balance Payment
-  const ledger = await recalcOrderLedger(order, { rounded: true });
+  const ledger = await recalcOrderLedger(order, { rounded: true, userId: user.id });
 
   await addHistory(
     order.id, 'Payment Edited', order.payment_status, ledger.status,
@@ -497,3 +506,5 @@ exports.update = async (req, res) => {
     },
   });
 };
+
+exports.recalcOrderLedger = recalcOrderLedger;

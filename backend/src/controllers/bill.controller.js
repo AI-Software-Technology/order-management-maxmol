@@ -1,5 +1,5 @@
 // Bills / Invoices - a read-only view built from Orders & verified Payments
-const { Order, OrderItem, Payment, Vendor, User, Company, Product } = require('../models');
+const { Order, OrderItem, Payment, Vendor, User, Company, Product, Delivery } = require('../models');
 const { toId, like, round2, addDateRange, sumBy, uniq } = require('../utils/helpers');
 const { loadOrderRefs, loadItemsByOrder, summarizeItems, resolveIdsByIdOrName, isActive } = require('../utils/queries');
 
@@ -187,6 +187,39 @@ exports.getOne = async (req, res) => {
 
   const { figures } = billFigures(o.grand_total, o.amount_received, o.pending_amount, o.tax_type);
 
+  // ---- shipment invoices ( one per delivery ) ----
+  // Verified cash of the order is applied to shipments oldest-first. Cash not yet used
+  // ( advance ) stays on the order and covers the next shipment automatically.
+  const deliveries = (await Delivery.rows({ order_id: id }, { sort: { id: 1 } })).filter((d) => d.invoice_number);
+  const itemById = new Map(rawItems.map((i) => [i.id, i]));
+  let cashPool = round2(o.amount_received || 0);
+  const shipments = deliveries.map((d) => {
+    const applied = round2(Math.min(d.invoice_total || 0, cashPool));
+    cashPool = round2(cashPool - applied);
+    const taxable = d.tax_type === 'NON_GST' ? d.invoice_total : d.subtotal;
+    return {
+      id: d.id, shipment_no: d.shipment_no, invoice_number: d.invoice_number, invoice_date: d.delivery_date,
+      is_partial: d.is_partial === 1, tax_type: d.tax_type, delivered_quantity: d.delivered_quantity,
+      taxable_amount: taxable, gst_amount: d.tax_amount, cgst_amount: round2((d.tax_amount || 0) / 2),
+      sgst_amount: round2((d.tax_amount || 0) - round2((d.tax_amount || 0) / 2)),
+      bill_amount: d.invoice_total, paid_amount: applied, balance_amount: round2((d.invoice_total || 0) - applied),
+      items: (d.items || []).map((l) => {
+        const it = itemById.get(l.order_item_id);
+        return {
+          order_item_id: l.order_item_id, product_name: it?.product_name ?? null, sku: it?.sku ?? null, unit: it?.unit ?? null,
+          quantity: l.quantity, rate: it?.rate ?? 0, line_amount: round2(l.quantity * (it?.rate ?? 0)),
+          item_colour: it?.item_colour ?? '',
+        };
+      }),
+    };
+  });
+  const invoicedTotal = round2(sumBy(shipments, (s) => s.bill_amount));
+  const remainingValue = round2(Math.max(0, o.grand_total - invoicedTotal));
+  const pendingItems = rawItems
+    .map((i) => ({ product_name: i.product_name, unit: i.unit, quantity: Math.max(0, i.quantity - (i.delivered_quantity || 0)), rate: i.rate }))
+    .filter((i) => i.quantity > 0);
+  const vendorCredit = round2(v?.credit_balance || 0);
+
   const bill = {
     ...o,
     invoice_number: invoiceNo(o.order_number),
@@ -198,6 +231,13 @@ exports.getOne = async (req, res) => {
     ...companyFields(c, true),
     sales_person_name: u?.name ?? null, sales_person_mobile: u?.mobile ?? null, sales_person_email: u?.email ?? null,
     ...figures,
+    shipments,
+    // advance already received that will cover the units still to be shipped
+    advance_for_pending: round2(Math.min(cashPool, remainingValue)),
+    pending_items: pendingItems,
+    pending_value: remainingValue,
+    excess_credit: round2(o.excess_amount || 0),
+    party_credit_balance: vendorCredit,
     items: rawItems.map((i) => ({
       ...i,
       product_description: products.get(i.product_id)?.description ?? null,
