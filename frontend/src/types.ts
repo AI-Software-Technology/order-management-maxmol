@@ -318,6 +318,7 @@ transport_contact_number?: string | null;
 
   payment_terms: string;
   tax_type?: string;
+  tax_regime?: 'CGST_SGST' | 'IGST' | 'NONE' | string;
   subtotal: number;
   discount_amount: number;
   tax_rate: number;
@@ -398,6 +399,7 @@ export interface Bill {
   sales_person_mobile?: string;
   sales_person_email?: string;
   tax_type: 'GST_18' | 'NON_GST' | string;
+  tax_regime?: 'CGST_SGST' | 'IGST' | 'NONE' | string;
   bill_amount: number;
   taxable_amount: number;
   gst_amount: number;

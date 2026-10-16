@@ -462,7 +462,7 @@ export const Payments: React.FC<{ onNavigate: (page: string) => void }> = ({ onN
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Client / Vendor</span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase block">Client / Party</span>
                         <span className="font-semibold text-slate-900">{p.vendor_name}</span>
                       </div>
                       <div>
@@ -523,7 +523,7 @@ export const Payments: React.FC<{ onNavigate: (page: string) => void }> = ({ onN
                   <thead>
                     <tr className="bg-amber-50/60 border-b border-amber-200 text-slate-700 font-semibold text-[11px]">
                       <th className="py-2.5 px-3">Order ID</th>
-                      <th className="py-2.5 px-3">Vendor / Client</th>
+                      <th className="py-2.5 px-3">Party / Client</th>
                       <th className="py-2.5 px-3">Sales Person</th>
                       <th className="py-2.5 px-3">Amount</th>
                       <th className="py-2.5 px-3">Payment Mode</th>
@@ -624,7 +624,7 @@ export const Payments: React.FC<{ onNavigate: (page: string) => void }> = ({ onN
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search Receipt #, Order #, Vendor name, Ref #..."
+                placeholder="Search Receipt #, Order #, Party name, Ref #..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') fetchPayments(); }}
@@ -1091,7 +1091,7 @@ export const Payments: React.FC<{ onNavigate: (page: string) => void }> = ({ onN
               {selectedOrderData && (
                 <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 font-semibold uppercase text-[10px] block">Vendor</span>
+                    <span className="text-slate-400 font-semibold uppercase text-[10px] block">Party</span>
                     <p className="font-bold text-slate-800">{selectedOrderData.vendor_name}</p>
                   </div>
                   <div>

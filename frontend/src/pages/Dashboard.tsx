@@ -405,7 +405,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
             >
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-[11px] font-semibold">
-                  My Assigned Vendors
+                  My Assigned Parties
                 </span>
                 <Building className="w-4 h-4 text-amber-500" />
               </div>
@@ -469,7 +469,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                   ₹{(cards.myPendingPayment || 0).toLocaleString("en-IN")}
                 </p>
                 <p className="text-[11px] text-rose-700 mt-1">
-                  Outstanding vendor balance
+                  Outstanding party balance
                 </p>
               </div>
               <div className="bg-indigo-50/60 p-5 rounded-2xl border border-indigo-200 shadow-xs">
@@ -706,7 +706,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  My Key Vendors
+                  My Key Parties
                 </h3>
                 <p className="text-xs text-slate-500">
                   Your top purchasing clients
@@ -716,14 +716,14 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                 onClick={() => onNavigate("vendors")}
                 className="text-xs font-semibold text-amber-600 hover:text-amber-700"
               >
-                All My Vendors →
+                All My Parties →
               </button>
             </div>
 
             <div className="space-y-2.5">
               {topVendors.length === 0 ? (
                 <p className="text-xs text-slate-400 py-4 text-center">
-                  No vendor activity in this period
+                  No party activity in this period
                 </p>
               ) : (
                 topVendors.map((v: any, idx: number) => (
@@ -787,7 +787,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <th className="py-3 px-4">Order ID</th>
-                  <th className="py-3 px-4">Vendor</th>
+                  <th className="py-3 px-4">Party</th>
                   <th className="py-3 px-4">Products</th>
                   {canViewPayments && (
                     <>
@@ -1010,7 +1010,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
               }}
               className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg outline-none focus:border-purple-500"
             >
-              <option value="ALL">All Vendors</option>
+              <option value="ALL">All Parties</option>
               {(filterOptions.vendors || []).map((v: any) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
@@ -1160,7 +1160,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <th className="py-3 px-4">Order ID</th>
-                  <th className="py-3 px-4">Vendor</th>
+                  <th className="py-3 px-4">Party</th>
                   <th className="py-3 px-4">Sales Person</th>
                   <th className="py-3 px-4">Required Delivery</th>
                   <th className="py-3 px-4">Lubricant Items & Quantity</th>
@@ -1514,7 +1514,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                   Pending Verification Queue
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Payments submitted by sales or vendors awaiting accounts
+                  Payments submitted by sales or parties awaiting accounts
                   approval
                 </p>
               </div>
@@ -1530,7 +1530,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <th className="py-3 px-4">Payment #</th>
                   <th className="py-3 px-4">Order #</th>
-                  <th className="py-3 px-4">Vendor</th>
+                  <th className="py-3 px-4">Party</th>
                   <th className="py-3 px-4">Mode & Ref</th>
                   <th className="py-3 px-4 text-right">Amount</th>
                   <th className="py-3 px-4 text-center">Receipt</th>
@@ -1856,7 +1856,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
             }}
             className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg font-medium outline-none focus:border-amber-500"
           >
-            <option value="ALL">All Vendors</option>
+            <option value="ALL">All Parties</option>
             {(filterOptions.vendors || []).map((v: any) => (
               <option key={v.id} value={v.id}>
                 {v.name}
@@ -2190,7 +2190,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
         >
           <div>
             <span className="text-[11px] font-semibold text-slate-500">
-              Total Vendors
+              Total Parties
             </span>
             <p className="text-xl font-bold text-slate-900 mt-0.5">
               {businessCat.totalVendors || 0}
@@ -2500,7 +2500,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
               onClick={() => onNavigate("vendors")}
               className="text-xs font-semibold text-amber-600 hover:text-amber-700"
             >
-              All Vendors →
+              All Parties →
             </button>
           </div>
           <div className="space-y-2">
@@ -2560,7 +2560,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                 <th className="py-3 px-4">Order ID</th>
-                <th className="py-3 px-4">Vendor</th>
+                <th className="py-3 px-4">Party</th>
                 <th className="py-3 px-4">Products</th>
                 <th className="py-3 px-4">Sales Person</th>
                 <th className="py-3 px-4">Billing Company</th>

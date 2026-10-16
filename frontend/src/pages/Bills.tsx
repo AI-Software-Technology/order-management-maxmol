@@ -333,7 +333,7 @@ export const Bills: React.FC<BillsProps> = ({ onNavigate }) => {
               <option value="ALL">All Parties ({parties.length})</option>
               {parties.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.company_name} ({p.city || 'Vendor'})
+                  {p.company_name} ({p.city || 'Party'})
                 </option>
               ))}
             </select>

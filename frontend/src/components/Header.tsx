@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewOrder, onTo
             <input
               type="text"
               autoFocus
-              placeholder="Search orders, vendors, products..."
+              placeholder="Search orders, parties, products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-8 py-2 bg-slate-100 text-xs border border-transparent focus:border-amber-400 focus:bg-white rounded-lg outline-none"
@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewOrder, onTo
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search orders (ORD-10170), vendors, products..."
+                  placeholder="Search orders (ORD-10170), parties, products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-100 hover:bg-slate-100/80 focus:bg-white text-xs border border-transparent focus:border-slate-300 rounded-lg outline-none transition"

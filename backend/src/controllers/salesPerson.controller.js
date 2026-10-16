@@ -2,6 +2,8 @@
 const { User, Role, Vendor, Order, OrderItem, Company, Product } = require('../models');
 const { toId, dateOf, monthOf, addDateRange, sumBy, countBy, uniq, groupBy, isShortRange } = require('../utils/helpers');
 const { loadItemsByOrder, DEFAULT_PRODUCT_IMAGE } = require('../utils/queries');
+const { heldAdvanceByOrder } = require('../utils/advance');
+const { round2 } = require('../utils/helpers');
 
 const notCancelled = (o) => o.order_status !== 'CANCELLED';
 
@@ -116,6 +118,15 @@ exports.getOne = async (req, res) => {
   const products = await Product.byIds(uniq(allItems.map((i) => i.product_id)), 'id image_url');
   const imageOf = (i) => products.get(i.product_id)?.image_url ?? DEFAULT_PRODUCT_IMAGE(80);
 
+  // Advance: held on open orders + party credit ( saved extra cash ) of this person's parties
+  const heldByOrder = await heldAdvanceByOrder(live);
+  const heldByParty = new Map();
+  for (const o of live) heldByParty.set(o.vendor_id, round2((heldByParty.get(o.vendor_id) || 0) + (heldByOrder.get(o.id) || 0)));
+  const creditByParty = new Map(parties.map((p) => [p.id, round2(p.credit_balance || 0)]));
+  for (const v of vendorMap.values()) if (!creditByParty.has(v.id)) creditByParty.set(v.id, round2(v.credit_balance || 0));
+  const advanceHeld = round2([...heldByOrder.values()].reduce((a, b) => a + b, 0));
+  const partyCredit = round2([...creditByParty.values()].reduce((a, b) => a + b, 0));
+
   const has = ordersRaw.length > 0;
   const count = (fn) => (has ? countBy(ordersRaw, fn) : null);
   const metrics = {
@@ -123,6 +134,9 @@ exports.getOne = async (req, res) => {
     total_order_value: sumBy(live, (o) => o.grand_total),
     amount_received: sumBy(live, (o) => o.amount_received),
     pending_amount: sumBy(live, (o) => o.pending_amount),
+    advance_held: advanceHeld,
+    party_credit: partyCredit,
+    total_advance: round2(advanceHeld + partyCredit),
     new_orders: count((o) => o.order_status === 'NEW'),
     approved_orders: count((o) => o.order_status === 'ACCEPTED'),
     packing_orders: count(
@@ -182,6 +196,9 @@ exports.getOne = async (req, res) => {
         total_spent: sumBy(liveList, (o) => o.grand_total),
         total_received: sumBy(liveList, (o) => o.amount_received),
         balance_payment: sumBy(liveList, (o) => o.pending_amount),
+        advance_held: heldByParty.get(v.id) || 0,
+        party_credit: creditByParty.get(v.id) || 0,
+        total_advance: round2((heldByParty.get(v.id) || 0) + (creditByParty.get(v.id) || 0)),
       };
     })
     .sort((a, b) => b.total_spent - a.total_spent)

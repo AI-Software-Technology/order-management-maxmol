@@ -10,6 +10,7 @@ const {
 } = require('../utils/queries');
 
 const { applyCreditToOrder } = require('./credit.controller');
+const { taxRegime } = require('../utils/gst');
 
 const findOrder = (idParam) => {
   const id = toId(idParam);
@@ -142,6 +143,7 @@ exports.list = async (req, res) => {
       vendor_name: v?.company_name ?? null,
       vendor_city: v?.city ?? null,
       vendor_state: v?.state ?? null,
+      tax_regime: taxRegime(o.tax_type, v?.state, c?.state),
       sales_person_name: refs.users.get(o.sales_person_id)?.name ?? null,
       billing_company_name: c?.name ?? null,
       billing_company_code: c?.code ?? null,
@@ -268,6 +270,7 @@ exports.getOne = async (req, res) => {
     vendor_email: v?.email ?? null, vendor_gstin: v?.gstin ?? null, vendor_billing_address: v?.billing_address ?? null,
     vendor_delivery_address: v?.delivery_address ?? null, vendor_city: v?.city ?? null, vendor_state: v?.state ?? null,
     vendor_pincode: v?.pincode ?? null,
+    tax_regime: taxRegime(o.tax_type, v?.state, c?.state),
     sales_person_name: u?.name ?? null, sales_person_email: u?.email ?? null, sales_person_mobile: u?.mobile ?? null,
     billing_company_name: c?.name ?? null, billing_company_code: c?.code ?? null, billing_company_logo: c?.logo_url ?? null,
     billing_company_gst: c?.gst_number ?? null, billing_company_address: c?.address ?? null,

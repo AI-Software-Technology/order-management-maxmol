@@ -407,7 +407,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
               Sales Officer: <strong>{order.sales_person_name}</strong>
             </span>
             <span>
-              Vendor: <strong>{order.vendor_name}</strong>
+              Party: <strong>{order.vendor_name}</strong>
             </span>
           </div>
         </div>
@@ -996,7 +996,13 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                         </span>
                       </div>
                       <div className="flex justify-between text-slate-600">
-                        <span>{isNonGst ? "GST:" : "GST @18%:"}</span>
+                        <span>
+                          {isNonGst
+                            ? "GST:"
+                            : (order as any).tax_regime === "IGST"
+                              ? "IGST @18% (Interstate):"
+                              : "GST @18% (CGST 9% + SGST 9%):"}
+                        </span>
                         <span className="font-mono text-slate-800">
                           ₹
                           {order.tax_amount.toLocaleString("en-IN", {
@@ -1510,7 +1516,6 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                 <input
                   type="number"
                   min="1"
-                  max={order.pending_amount}
                   required
                   value={paymentForm.amount}
                   onChange={(e) =>
@@ -1519,6 +1524,11 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                   className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold"
                   placeholder="e.g. 25000"
                 />
+                {Number(paymentForm.amount) > Number(order.pending_amount) + 0.01 && (
+                  <p className="mt-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-1.5">
+                    ₹{(Number(paymentForm.amount) - Number(order.pending_amount)).toLocaleString("en-IN")} is extra. It will be saved as this party's credit after Accounts verifies it.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block font-semibold mb-1">Payment Mode</label>

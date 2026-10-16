@@ -20,9 +20,14 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const [shipmentId, setShipmentId] = useState<number | null>(null);
+  const [reloadKey, setReloadKey] = useState<number>(0);
+  const [creditBusy, setCreditBusy] = useState<boolean>(false);
 
   useEffect(() => {
     setShipmentId(null);
+  }, [billId, isOpen]);
+
+  useEffect(() => {
     if (!isOpen || !billId) {
       setBill(null);
       return;
@@ -55,9 +60,32 @@ export const BillModal: React.FC<BillModalProps> = ({ billId, isOpen, onClose, a
     };
 
     fetchBill();
-  }, [billId, isOpen, autoPrint]);
+  }, [billId, isOpen, autoPrint, reloadKey]);
 
   if (!isOpen) return null;
+// Use the party's saved credit (extra / advance cash) against this bill's pending balance
+const handleAdjustCredit = async () => {
+  const credit = Number((bill as any)?.party_credit_balance || 0);
+  const pending = Number((bill as any)?.balance_payment || 0);
+  const use = Math.min(credit, pending);
+  if (use <= 0) return;
+  if (!window.confirm(`Adjust ₹${use.toLocaleString('en-IN')} from this party's saved credit against the pending bill balance?`)) return;
+  setCreditBusy(true);
+  try {
+    const token = getToken();
+    const res = await apiFetch(`/api/orders/${billId}/adjust-credit`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const d = await res.json();
+    if (!res.ok) alert(d.error || 'Could not adjust credit');
+    setReloadKey((k) => k + 1);
+  } finally {
+    setCreditBusy(false);
+  }
+};
+
 const handlePrint = () => {
   const oldTitle = document.title;
   if (shownInvoiceNo) document.title = shownInvoiceNo;
@@ -79,8 +107,11 @@ const handlePrint = () => {
   const billAmount = shipment ? Number(shipment.bill_amount || 0) : bill ? Number(bill.bill_amount || 0) : 0;
   const taxableAmount = isNonGst ? billAmount : Math.round((billAmount / 1.18) * 100) / 100;
   const gstAmount = isNonGst ? 0 : Math.round((billAmount - taxableAmount) * 100) / 100;
-  const cgstAmount = isNonGst ? 0 : Math.round((gstAmount / 2) * 100) / 100;
-  const sgstAmount = isNonGst ? 0 : Math.round((gstAmount - cgstAmount) * 100) / 100;
+  // Same state (Delhi) -> CGST + SGST, other state -> IGST 18%
+  const isIgst = !isNonGst && (shipment ? shipment.tax_regime : b?.tax_regime) === 'IGST';
+  const igstAmount = isIgst ? gstAmount : 0;
+  const cgstAmount = isNonGst || isIgst ? 0 : Math.round((gstAmount / 2) * 100) / 100;
+  const sgstAmount = isNonGst || isIgst ? 0 : Math.round((gstAmount - cgstAmount) * 100) / 100;
   const receivedAmount = shipment ? Number(shipment.paid_amount || 0) : bill ? Number(bill.received_amount || 0) : 0;
   const balancePayment = shipment
     ? Math.max(0, Number(shipment.balance_amount || 0))
@@ -428,14 +459,23 @@ const handlePrint = () => {
                         <span>Taxable Amount (Excl. Tax):</span>
                         <span className="font-semibold">₹{taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       </div>
-                      <div className="flex justify-between text-slate-600 text-[11px]">
-                        <span>CGST (9%):</span>
-                        <span>₹{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-600 text-[11px]">
-                        <span>SGST (9%):</span>
-                        <span>₹{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                      </div>
+                      {isIgst ? (
+                        <div className="flex justify-between text-slate-600 text-[11px]">
+                          <span>IGST (18%) - Interstate:</span>
+                          <span>₹{igstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between text-slate-600 text-[11px]">
+                            <span>CGST (9%):</span>
+                            <span>₹{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-600 text-[11px]">
+                            <span>SGST (9%):</span>
+                            <span>₹{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between text-slate-700 text-[11px] font-semibold">
                         <span>Total 18% GST (Inclusive):</span>
                         <span>₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -460,6 +500,18 @@ const handlePrint = () => {
                       <span>Balance Payment Due:</span>
                       <span>₹{balancePayment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
+                    {Number(b?.balance_payment) > 0 && Number(b?.party_credit_balance) > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleAdjustCredit}
+                        disabled={creditBusy}
+                        className="print:hidden w-full mt-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-[11px] font-bold rounded-lg"
+                      >
+                        {creditBusy
+                          ? 'Adjusting...'
+                          : `Adjust Party Credit ₹${Math.min(Number(b.party_credit_balance), Number(b.balance_payment)).toLocaleString('en-IN')} against this bill`}
+                      </button>
+                    )}
                     {!shipment && Number(b?.excess_credit) > 0 && (
                       <div className="flex justify-between text-indigo-700 font-semibold">
                         <span>Extra paid (saved as party credit):</span>

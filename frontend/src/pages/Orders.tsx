@@ -290,7 +290,7 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate, initialSearch = '', 
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search Order ID, Vendor, SKU..."
+                placeholder="Search Order ID, Party, SKU..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"

@@ -272,7 +272,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
     }
 
     if (!selectedVendorId) {
-      setError('Please select a Party / Vendor.');
+      setError('Please select a Party.');
       return;
     }
 
@@ -456,11 +456,11 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   <p className="text-[10px] text-slate-400 mt-1">Changes billing entity printed on invoices & slips.</p>
                 </div>
 
-                {/* Party (Vendor) */}
+                {/* Party */}
                 <div>
                   <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
                     <Store className="w-3.5 h-3.5 text-amber-600" />
-                    Party (Customer / Vendor) *
+                    Party (Customer) *
                   </label>
                   <select
                     value={selectedVendorId || ''}

@@ -622,7 +622,7 @@ export const Vendors: React.FC<{
                   <button
                     onClick={() => handleOpenProfile(v.id)}
                     className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition flex items-center gap-1"
-                    title="View Vendor Profile & History"
+                    title="View Party Profile & History"
                   >
                     <Eye className="w-3.5 h-3.5 text-slate-600" />
                     <span>View</span>
@@ -634,7 +634,7 @@ export const Vendors: React.FC<{
                     <button
                       onClick={() => handleOpenEdit(v)}
                       className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition flex items-center gap-1 shadow-2xs"
-                      title="Edit Vendor Profile"
+                      title="Edit Party Profile"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit</span>
@@ -908,7 +908,7 @@ export const Vendors: React.FC<{
                           colSpan={8}
                           className="py-6 text-center text-slate-400"
                         >
-                          No orders recorded for this vendor yet.
+                          No orders recorded for this party yet.
                         </td>
                       </tr>
                     ) : (
@@ -1528,7 +1528,7 @@ export const Vendors: React.FC<{
                   disabled={formSubmitting}
                   className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg"
                 >
-                  Save Vendor
+                  Save Party
                 </button>
               </div>
             </form>

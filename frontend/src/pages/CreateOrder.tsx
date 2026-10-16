@@ -335,7 +335,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
       }
     } catch (err) {
       console.error(err);
-      alert('Network error while creating vendor');
+      alert('Network error while creating party');
     }
   };
 
@@ -347,7 +347,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
       return;
     }
     if (!selectedVendorId) {
-      alert('Please select a Vendor in Step 2');
+      alert('Please select a Party in Step 2');
       setStep(2);
       return;
     }
@@ -606,7 +606,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search vendor by company name, contact person, city or GSTIN..."
+              placeholder="Search party by company name, contact person, city or GSTIN..."
               value={vendorSearch}
               onChange={(e) => setVendorSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
@@ -1000,7 +1000,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
               onClick={() => setStep(2)}
               className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl"
             >
-              ← Back to Vendor
+              ← Back to Party
             </button>
             <button
               type="button"
@@ -1178,7 +1178,13 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
                     <span className="font-mono font-semibold">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{taxType === 'GST_18' ? 'GST @18%:' : 'GST:'}</span>
+                    <span>
+                      {taxType !== 'GST_18'
+                        ? 'GST:'
+                        : /delhi/i.test(String((selectedVendor as any)?.state || ''))
+                          ? 'GST @18% (CGST 9% + SGST 9%):'
+                          : 'IGST @18% (Interstate):'}
+                    </span>
                     <span className="font-mono font-semibold">₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2 text-slate-900 font-bold text-sm">

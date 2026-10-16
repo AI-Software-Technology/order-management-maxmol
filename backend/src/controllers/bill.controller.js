@@ -1,4 +1,5 @@
 // Bills / Invoices - a read-only view built from Orders & verified Payments
+const { taxRegime, splitTax } = require('../utils/gst');
 const { Order, OrderItem, Payment, Vendor, User, Company, Product, Delivery } = require('../models');
 const { toId, like, round2, addDateRange, sumBy, uniq } = require('../utils/helpers');
 const { loadOrderRefs, loadItemsByOrder, summarizeItems, resolveIdsByIdOrName, isActive } = require('../utils/queries');
@@ -14,7 +15,7 @@ function billAccess(user) {
 }
 
 // Reverse GST split + paid / partial / unpaid status
-function billFigures(billAmountRaw, receivedRaw, pendingRaw, taxType) {
+function billFigures(billAmountRaw, receivedRaw, pendingRaw, taxType, regime = 'CGST_SGST') {
   const isNonGst = taxType === 'NON_GST';
   const billAmt = Number(billAmountRaw) || 0;
   const recAmt = Number(receivedRaw) || 0;
@@ -22,8 +23,10 @@ function billFigures(billAmountRaw, receivedRaw, pendingRaw, taxType) {
 
   const taxableAmt = isNonGst ? billAmt : round2(billAmt / 1.18);
   const gstAmt = isNonGst ? 0 : round2(billAmt - taxableAmt);
-  const cgstAmt = isNonGst ? 0 : round2(gstAmt / 2);
-  const sgstAmt = isNonGst ? 0 : round2(gstAmt - cgstAmt);
+  const split = splitTax(gstAmt, isNonGst ? 'NONE' : regime);
+  const cgstAmt = split.cgst;
+  const sgstAmt = split.sgst;
+  const igstAmt = split.igst;
 
   let pStatus = 'UNPAID';
   if (balAmt <= 0 && recAmt > 0) pStatus = 'PAID';
@@ -33,7 +36,7 @@ function billFigures(billAmountRaw, receivedRaw, pendingRaw, taxType) {
     isNonGst,
     figures: {
       bill_amount: billAmt, taxable_amount: taxableAmt, gst_amount: gstAmt, cgst_amount: cgstAmt,
-      sgst_amount: sgstAmt, received_amount: recAmt, balance_payment: balAmt, payment_status: pStatus,
+      sgst_amount: sgstAmt, igst_amount: igstAmt, tax_regime: isNonGst ? 'NONE' : regime, received_amount: recAmt, balance_payment: balAmt, payment_status: pStatus,
     },
   };
 }
@@ -107,7 +110,7 @@ exports.list = async (req, res) => {
     const v = refs.vendors.get(o.vendor_id);
     const u = refs.users.get(o.sales_person_id);
     const c = refs.companies.get(o.company_id);
-    const { isNonGst, figures } = billFigures(o.grand_total, o.amount_received, o.pending_amount, o.tax_type);
+    const { isNonGst, figures } = billFigures(o.grand_total, o.amount_received, o.pending_amount, o.tax_type, taxRegime(o.tax_type, v?.state, c?.state));
     const itemSummary = summarizeItems(itemsMap.get(o.id) || []);
 
     summary.total_bills += 1;
@@ -185,7 +188,8 @@ exports.getOne = async (req, res) => {
     User.byIds(uniq(paymentRows.flatMap((p) => [p.received_by_id, p.verified_by_id])), 'id name'),
   ]);
 
-  const { figures } = billFigures(o.grand_total, o.amount_received, o.pending_amount, o.tax_type);
+  const regime = taxRegime(o.tax_type, v?.state, c?.state);
+  const { figures } = billFigures(o.grand_total, o.amount_received, o.pending_amount, o.tax_type, regime);
 
   // ---- shipment invoices ( one per delivery ) ----
   // Verified cash of the order is applied to shipments oldest-first. Cash not yet used
@@ -200,8 +204,10 @@ exports.getOne = async (req, res) => {
     return {
       id: d.id, shipment_no: d.shipment_no, invoice_number: d.invoice_number, invoice_date: d.delivery_date,
       is_partial: d.is_partial === 1, tax_type: d.tax_type, delivered_quantity: d.delivered_quantity,
-      taxable_amount: taxable, gst_amount: d.tax_amount, cgst_amount: round2((d.tax_amount || 0) / 2),
-      sgst_amount: round2((d.tax_amount || 0) - round2((d.tax_amount || 0) / 2)),
+      taxable_amount: taxable, gst_amount: d.tax_amount, tax_regime: d.tax_type === 'NON_GST' ? 'NONE' : regime,
+      cgst_amount: splitTax(d.tax_amount, d.tax_type === 'NON_GST' ? 'NONE' : regime).cgst,
+      sgst_amount: splitTax(d.tax_amount, d.tax_type === 'NON_GST' ? 'NONE' : regime).sgst,
+      igst_amount: splitTax(d.tax_amount, d.tax_type === 'NON_GST' ? 'NONE' : regime).igst,
       bill_amount: d.invoice_total, paid_amount: applied, balance_amount: round2((d.invoice_total || 0) - applied),
       items: (d.items || []).map((l) => {
         const it = itemById.get(l.order_item_id);

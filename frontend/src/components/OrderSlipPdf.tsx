@@ -305,7 +305,9 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
                 <Text>{isNonGst ? 'Subtotal' : 'Taxable Value (Excl. GST)'}</Text>
                 <Text style={s.bold}>₹{money(order.subtotal)}</Text>
               </View>
-              {!isNonGst && half > 0 ? (
+              {!isNonGst && order.tax_regime === 'IGST' ? (
+                <View style={s.kv}><Text>IGST @{order.tax_rate || 18}%</Text><Text>₹{money(order.tax_amount)}</Text></View>
+              ) : !isNonGst && half > 0 ? (
                 <>
                   <View style={s.kv}><Text>CGST @{half}%</Text><Text>₹{money(order.tax_amount / 2)}</Text></View>
                   <View style={s.kv}><Text>SGST @{half}%</Text><Text>₹{money(order.tax_amount / 2)}</Text></View>

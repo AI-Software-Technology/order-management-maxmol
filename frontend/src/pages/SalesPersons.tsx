@@ -388,7 +388,7 @@ export const SalesPersons: React.FC<SalesPersonsProps> = ({ onNavigate, initialP
             ) : profileData ? (
               <>
                 {/* Performance KPI Cards (recalculated for active range) */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 text-xs">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                     <p className="text-slate-500 text-[11px] font-semibold">Total Orders</p>
                     <p className="text-xl font-black text-slate-900 mt-0.5">
@@ -435,6 +435,16 @@ export const SalesPersons: React.FC<SalesPersonsProps> = ({ onNavigate, initialP
                       ₹{(profileData.metrics.pending_amount || 0).toLocaleString('en-IN')}
                     </p>
                     <p className="text-[10px] text-indigo-600 mt-0.5">Outstanding balance</p>
+                  </div>
+
+                  <div className="p-3 bg-violet-50 rounded-xl border border-violet-200">
+                    <p className="text-violet-800 text-[11px] font-semibold">Total Advance</p>
+                    <p className="text-xl font-black text-violet-900 font-mono mt-0.5">
+                      ₹{(profileData.metrics.total_advance || 0).toLocaleString('en-IN')}
+                    </p>
+                    <p className="text-[10px] text-violet-600 mt-0.5">
+                      Orders ₹{(profileData.metrics.advance_held || 0).toLocaleString('en-IN')} · Credit ₹{(profileData.metrics.party_credit || 0).toLocaleString('en-IN')}
+                    </p>
                   </div>
                 </div>
 
@@ -539,6 +549,11 @@ export const SalesPersons: React.FC<SalesPersonsProps> = ({ onNavigate, initialP
                                 </p>
                               ) : (
                                 <p className="text-[10px] text-emerald-600 font-semibold">Cleared</p>
+                              )}
+                              {pty.total_advance > 0 && (
+                                <p className="text-[10px] text-violet-600 font-semibold">
+                                  ₹{pty.total_advance.toLocaleString('en-IN')} advance
+                                </p>
                               )}
                             </div>
                           </div>
