@@ -99,22 +99,40 @@ exports.createProduct = async (req, res) => {
   const { name, brand_id, category_id, unit, standard_rate, description, image_url, item_colour, status } = req.body;
   const cleanUnit = (unit || '').toString().trim();
   if (!name || !brand_id || !category_id || !cleanUnit) {
-    return res.status(400).json({ error: 'Name, Brand, Category,and Packing Unit are required' });
+    return res.status(400).json({ error: 'Name, Brand, Category, and Packing Unit are required' });
   }
-  // SKU is no longer entered by the user; keep an internal sequential code so bills/packing slips stay consistent.
-  const all = await Product.rows({}, { select: 'sku' });
-  const maxSku = all.reduce((m, p) => Math.max(m, parseInt(p.sku, 10) || 0), 0);
-  const sku = String(maxSku + 1).padStart(3, '0');
 
-  const product = await Product.insert({
-    name, brand_id: Number(brand_id), category_id: Number(category_id), unit: cleanUnit,
-    min_order_qty: 1, standard_rate: Number(standard_rate) || 0,
-    description: description || '', image_url: image_url || '',
-    item_colour: item_colour || 'Golden Yellow', status: status || 'active',
-  });
+  const nextSku = async () => {
+    const all = await Product.rows({}, { select: 'sku' });
+    const maxSku = all.reduce((m, p) => Math.max(m, parseInt(p.sku, 10) || 0), 0);
+    return String(maxSku + 1).padStart(3, '0');
+  };
+
+  const isDupSku = (e) =>
+    /duplicate/i.test(e?.message || '') && /sku/i.test(e?.message || '') ||
+    e?.code === 'ER_DUP_ENTRY' || e?.code === 11000 || e?.name === 'SequelizeUniqueConstraintError';
+
+  let product, sku;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    sku = await nextSku();
+    try {
+      product = await Product.insert({
+        sku,
+        name, brand_id: Number(brand_id), category_id: Number(category_id), unit: cleanUnit,
+        min_order_qty: 1, standard_rate: Number(standard_rate) || 0,
+        description: description || '', image_url: image_url || '',
+        item_colour: item_colour || 'Golden Yellow', status: status || 'active',
+      });
+      break;
+    } catch (e) {
+      if (!isDupSku(e) || attempt === 4) {
+        return res.status(isDupSku(e) ? 409 : 500).json({ error: e.message });
+      }
+    }
+  }
 
   await logActivity(req.user.id, 'PRODUCT_CREATED', 'product', sku, `Added new product ${name} (${sku}) with packing unit ${cleanUnit}`);
-  res.json({ id: product.id, message: 'Product created successfully' });
+  res.json({ id: product.id, sku, message: 'Product created successfully' });
 };
 
 exports.updateProduct = async (req, res) => {
