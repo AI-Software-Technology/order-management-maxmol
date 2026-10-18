@@ -251,7 +251,7 @@ const handlePrint = () => {
                         </div>
                       )}
                       <h2 className="text-lg font-black tracking-wide text-slate-950 uppercase">
-                        {bill.company_name || 'PetroFlow Lubricants Pvt Ltd'}
+                        {bill.company_name || 'Maxmol Lubricant Lubricants Pvt Ltd'}
                       </h2>
                     </div>
                     <p className="text-slate-600 text-[11px] leading-relaxed">
@@ -535,11 +535,11 @@ const handlePrint = () => {
 
                 <div className="sm:text-right flex flex-col justify-between">
                   <p className="text-[10px] text-slate-500 italic">
-                    This is a computer-generated invoice from PetroFlow Lubricant ERP.
+                    This is a computer-generated invoice from Maxmol Lubricant Lubricant ERP.
                   </p>
                   <div className="pt-8">
                     <div className="inline-block border-t border-slate-400 pt-1 text-center min-w-[160px]">
-                      <p className="font-bold text-slate-800 text-[11px]">For {bill.company_name || 'PetroFlow Lubricants Pvt Ltd'}</p>
+                      <p className="font-bold text-slate-800 text-[11px]">For {bill.company_name || 'Maxmol Lubricant Lubricants Pvt Ltd'}</p>
                       <p className="text-[10px] text-slate-500">Authorized Signatory</p>
                     </div>
                   </div>
@@ -552,7 +552,7 @@ const handlePrint = () => {
 
         {/* Footer info (Hidden when printing) */}
         <div className="px-5 py-3 border-t border-slate-900 bg-slate-50 flex items-center justify-between text-xs text-slate-500 shrink-0 print:hidden">
-          <span>Official Commercial Bill Record • PetroFlow ERP</span>
+          <span>Official Commercial Bill Record • Maxmol Lubricant ERP</span>
           <button
             type="button"
             onClick={onClose}

@@ -21,11 +21,11 @@ const inputClass =
 
 const Brand: React.FC<{ tone: 'light' | 'dark' }> = ({ tone }) => (
   <div className="flex items-center gap-3">
-    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-oil-950 shadow-md">
-      <Droplets className="h-6 w-6 fill-oil-950" aria-hidden="true" />
+    <span className="flex h-10 w-10 items-center justify-center rounded-xl text-oil-950 shadow-md">
+        <img src='https://i.ibb.co/YFZDpyCf/download-2.png' className='w-full' />
     </span>
     <span className={`font-display text-xl font-semibold tracking-tight ${tone === 'dark' ? 'text-white' : 'text-oil-900'}`}>
-      Petro<span className="text-amber-500">Flow</span> ERP
+      Maxmol <span className="text-amber-500">Lubricant</span> ERP
     </span>
   </div>
 );
@@ -113,7 +113,7 @@ export const Login: React.FC = () => {
           </div>
 
           <h2 className="font-display text-3xl font-semibold tracking-tight text-oil-900">Sign in</h2>
-          <p className="mt-2 text-[15px] text-slate-600">Use your PetroFlow account to continue.</p>
+          <p className="mt-2 text-[15px] text-slate-600">Use your Maxmol Lubricant account to continue.</p>
 
           {connectionError && (
             <div role="alert" className="mt-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3.5 text-sm text-amber-900">

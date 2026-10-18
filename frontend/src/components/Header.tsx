@@ -159,11 +159,11 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewOrder, onTo
               onClick={() => onNavigate('dashboard')}
               className="flex items-center gap-1.5 cursor-pointer lg:hidden shrink-0"
             >
-              <div className="w-7 h-7 rounded-md bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black shadow-xs">
-                <Droplets className="w-4 h-4 fill-slate-950" />
+              <div className="w-9 h-9 rounded-md  text-slate-950 flex items-center justify-center font-black shadow-xs">
+               <img src='https://i.ibb.co/YFZDpyCf/download-2.png' className='w-full' />
               </div>
               <span className="font-bold text-slate-900 text-sm tracking-tight hidden xs:inline">
-                Petro<span className="text-amber-500">Flow</span>
+                Maxmol<span className="text-amber-500">Lubricant</span>
               </span>
             </div>
 

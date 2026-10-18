@@ -42,10 +42,12 @@ import {
 } from "../utils/dateFilters.js";
 import { apiFetch } from "../lib/api.js";
 import { getToken } from "../lib/session.js";
+import { MoneySummary } from "../components/MoneySummary.js";
 
 export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
   onNavigate,
 }) => {
+ 
   const { user, hasPermission } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -268,13 +270,13 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
             </button>
             {(user?.role_slug === "super_admin" ||
               hasPermission("orders:create")) && (
-              <button
-                onClick={() => onNavigate("create-order")}
-                className="px-4 py-2 bg-white hover:bg-amber-50 text-slate-950 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"
-              >
-                <span>+ Create Order</span>
-              </button>
-            )}
+                <button
+                  onClick={() => onNavigate("create-order")}
+                  className="px-4 py-2 bg-white hover:bg-amber-50 text-slate-950 rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"
+                >
+                  <span>+ Create Order</span>
+                </button>
+              )}
           </div>
         </div>
 
@@ -627,8 +629,8 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                   <span className="font-bold text-emerald-700 font-mono">
                     {paymentGauge.total > 0
                       ? Math.round(
-                          (paymentGauge.received / paymentGauge.total) * 100,
-                        )
+                        (paymentGauge.received / paymentGauge.total) * 100,
+                      )
                       : 0}
                     %
                   </span>
@@ -1231,16 +1233,15 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            ord.packing_status === "PACKED" ||
-                            ord.packing_status === "HANDED_OVER"
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${ord.packing_status === "PACKED" ||
+                              ord.packing_status === "HANDED_OVER"
                               ? "bg-teal-50 text-teal-700 border-teal-200"
                               : ord.packing_status === "IN_PROGRESS"
                                 ? "bg-indigo-50 text-indigo-700 border-indigo-200"
                                 : ord.packing_status === "ON_HOLD"
                                   ? "bg-rose-50 text-rose-700 border-rose-200"
                                   : "bg-amber-50 text-amber-700 border-amber-200"
-                          }`}
+                            }`}
                         >
                           {ord.packing_status || "PENDING_PACKING"}
                         </span>
@@ -1787,13 +1788,13 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
           </button>
           {(user?.role_slug === "super_admin" ||
             hasPermission("orders:create")) && (
-            <button
-              onClick={() => onNavigate("create-order")}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-bold shadow-md transition"
-            >
-              + Create Order
-            </button>
-          )}
+              <button
+                onClick={() => onNavigate("create-order")}
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-bold shadow-md transition"
+              >
+                + Create Order
+              </button>
+            )}
         </div>
       </div>
 
@@ -1891,14 +1892,14 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
           {(selectedSalesPerson !== "ALL" ||
             selectedVendor !== "ALL" ||
             selectedStatus !== "ALL") && (
-            <button
-              onClick={handleClearFilters}
-              className="text-xs text-rose-600 hover:text-rose-700 font-bold underline ml-auto flex items-center gap-1"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Clear Scope Filters</span>
-            </button>
-          )}
+              <button
+                onClick={handleClearFilters}
+                className="text-xs text-rose-600 hover:text-rose-700 font-bold underline ml-auto flex items-center gap-1"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Clear Scope Filters</span>
+              </button>
+            )}
         </div>
       </div>
 
@@ -1983,119 +1984,27 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
         </div>
       </div>
 
-      {/* CATEGORY 2 & 5: SALES & PAYMENTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Sales Overview */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-              Sales Performance
-            </h3>
-            <span className="text-[10px] text-slate-400 font-mono">
-              Billed Volume
-            </span>
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+            Sales Performance
+          </h3>
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-500">Total Sales Value</span>
+            <p className="text-lg font-black text-slate-900 font-mono">₹{(salesCat.totalSalesValue || 0).toLocaleString("en-IN")}</p>
           </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-semibold text-slate-500">
-                Total Sales Value
-              </span>
-              <p className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                ₹{(salesCat.totalSalesValue || 0).toLocaleString("en-IN")}
-              </p>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-semibold text-slate-500">
-                Today's Sales
-              </span>
-              <p className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                ₹{(salesCat.todaySales || 0).toLocaleString("en-IN")}
-              </p>
-            </div>
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-semibold text-slate-500">
-                This Month Sales
-              </span>
-              <p className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                ₹{(salesCat.thisMonthSales || 0).toLocaleString("en-IN")}
-              </p>
-            </div>
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-500">Today's Sales</span>
+            <p className="text-lg font-black text-slate-900 font-mono">₹{(salesCat.todaySales || 0).toLocaleString("en-IN")}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[10px] font-semibold text-slate-500">This Month Sales</span>
+            <p className="text-lg font-black text-slate-900 font-mono">₹{(salesCat.thisMonthSales || 0).toLocaleString("en-IN")}</p>
           </div>
         </div>
-
-        {/* Payments Overview */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-              Payments & Collections
-            </h3>
-            <span className="text-[10px] text-slate-400 font-mono">
-              Ledger Balances
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200">
-              <span className="text-[10px] font-bold text-emerald-800">
-                Verified Received
-              </span>
-              <p className="text-lg font-black text-emerald-700 font-mono mt-0.5">
-                ₹{(paymentsCat.verifiedReceived || 0).toLocaleString("en-IN")}
-              </p>
-            </div>
-            <div className="bg-rose-50/60 p-3 rounded-xl border border-rose-200">
-              <span className="text-[10px] font-bold text-rose-800">
-                Pending Amount
-              </span>
-              <p className="text-lg font-black text-rose-700 font-mono mt-0.5">
-                ₹{(paymentsCat.pendingAmount || 0).toLocaleString("en-IN")}
-              </p>
-            </div>
-            <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-200">
-              <span className="text-[10px] font-bold text-amber-800">
-                Pending Audit
-              </span>
-              <p className="text-lg font-black text-amber-900 font-mono mt-0.5">
-                {paymentsCat.pendingVerification || 0} bills
-              </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-100">
-            <div className="bg-indigo-50/60 p-3 rounded-xl border border-indigo-200">
-              <span className="text-[10px] font-bold text-indigo-800">
-                Advance on Open Orders
-              </span>
-              <p className="text-lg font-black text-indigo-700 font-mono mt-0.5">
-                ₹{(paymentsCat.advanceHeld || 0).toLocaleString("en-IN")}
-              </p>
-              <p className="text-[10px] text-indigo-600">
-                {paymentsCat.advanceOrders || 0} orders
-              </p>
-            </div>
-            <div className="bg-violet-50/60 p-3 rounded-xl border border-violet-200">
-              <span className="text-[10px] font-bold text-violet-800">
-                Party Credit Saved
-              </span>
-              <p className="text-lg font-black text-violet-700 font-mono mt-0.5">
-                ₹{(paymentsCat.partyCredit || 0).toLocaleString("en-IN")}
-              </p>
-              <p className="text-[10px] text-violet-600">
-                {paymentsCat.partyCreditParties || 0} parties
-              </p>
-            </div>
-            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-              <span className="text-[10px] font-bold text-amber-300">
-                Total Advance Held
-              </span>
-              <p className="text-lg font-black text-white font-mono mt-0.5">
-                ₹{(paymentsCat.totalAdvance || 0).toLocaleString("en-IN")}
-              </p>
-              <p className="text-[10px] text-slate-400">Order + party credit</p>
-            </div>
-          </div>
+        <div className="lg:col-span-2">
+          <MoneySummary sales={salesCat} pay={paymentsCat} onNavigate={onNavigate} />
         </div>
       </div>
 
@@ -2367,10 +2276,10 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                 <span className="font-bold text-emerald-700 font-mono">
                   {charts.receivedVsPending.total > 0
                     ? Math.round(
-                        (charts.receivedVsPending.received /
-                          charts.receivedVsPending.total) *
-                          100,
-                      )
+                      (charts.receivedVsPending.received /
+                        charts.receivedVsPending.total) *
+                      100,
+                    )
                     : 0}
                   % Realized
                 </span>

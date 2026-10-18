@@ -60,13 +60,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, isOpe
       {/* Brand Header */}
       <div className="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-950 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md">
-            <Droplets className="w-5 h-5 fill-slate-950" />
+          <div className="w-12 h-12 rounded-lg  text-slate-950 flex items-center justify-center font-black shadow-md">
+            <img src='https://i.ibb.co/YFZDpyCf/download-2.png' className='w-full' />
           </div>
           <div>
-            <span className="font-bold text-white text-base tracking-wide flex items-center gap-1">
-              Petro<span className="text-amber-400">Flow</span>
-              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 bg-amber-400/20 text-amber-300 rounded ml-1 border border-amber-400/30">ERP</span>
+            <span className="font-bold text-white text-sm tracking-wide flex items-center gap-1">
+              Maxmol<span className="text-amber-400">Lubricant</span>
+              <span className="text-[8px] font-semibold uppercase px-1.5 py-0.2 bg-amber-400/20 text-amber-300 rounded ml-1 border border-amber-400/30">ERP</span>
             </span>
             <p className="text-[10px] text-slate-400 font-medium">Lubricant Ops & Logistics</p>
           </div>

@@ -776,7 +776,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
                         />
                         <div>
                           <p className="font-bold text-slate-900 text-xs">
-                            {row.product_name} {row.unit ? `– ${row.unit}` : ''}
+                            {row.product_name} 
                           </p>
                           <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10px]">
                             <span className="text-slate-400">{row.brand}</span>
@@ -891,7 +891,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
 
                         {/* Product Name */}
                         <td className="py-3 px-3">
-                          <p className="font-bold text-slate-900">{row.product_name} {row.unit ? `– ${row.unit}` : ''}</p>
+                          <p className="font-bold text-slate-900">{row.product_name} </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-slate-400">{row.brand}</span>
                             <input

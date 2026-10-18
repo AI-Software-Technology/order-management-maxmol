@@ -38,10 +38,12 @@ const notCancelled = (o) => o.order_status !== "CANCELLED";
 const isClosedOrder = (o) =>
   ["DELIVERED", "COMPLETED", "CANCELLED"].includes(o.order_status);
 
-// Advance = cash received on open orders for units NOT yet delivered
-// (e.g. paid 4800, delivered 2100 -> 2700 advance held)
-// Party credit = extra cash saved above order totals (Vendor.credit_balance)
-async function buildAdvanceStats(orders, vendorFilter = {}) {
+// Advance = money already paid on an OPEN order for goods that are NOT delivered yet.
+//   advance = min(paid, order total) - value of goods already delivered
+//   e.g. order 4800, paid 4800, goods worth 2100 delivered  ->  advance 2700
+// Party credit = extra money a party paid ABOVE an order total ( Vendor.credit_balance )
+async function buildAdvanceStats(orders, vendorFilter = {}, refs = null) {
+  const r2 = (n) => Math.round(n * 100) / 100;
   const open = orders.filter(
     (o) => !isClosedOrder(o) && (o.amount_received || 0) > 0,
   );
@@ -61,31 +63,43 @@ async function buildAdvanceStats(orders, vendorFilter = {}) {
   }
 
   let advanceHeld = 0;
-  let advanceOrders = 0;
+  const advanceList = [];
   for (const o of open) {
-    const held = Math.max(
-      0,
-      Math.min(o.amount_received || 0, o.grand_total || 0) -
-        (deliveredValue.get(o.id) || 0),
-    );
+    const paid = Math.min(o.amount_received || 0, o.grand_total || 0);
+    const delivered = deliveredValue.get(o.id) || 0;
+    const held = Math.max(0, paid - delivered);
     if (held > 0.01) {
       advanceHeld += held;
-      advanceOrders += 1;
+      advanceList.push({
+        id: o.id,
+        order_number: o.order_number,
+        party_name: refs?.vendors?.get(o.vendor_id)?.company_name ?? null,
+        order_total: r2(o.grand_total || 0),
+        paid: r2(paid),
+        delivered_value: r2(delivered),
+        advance: r2(held),
+      });
     }
   }
+  advanceList.sort((a, b) => b.advance - a.advance);
 
   const credits = await Vendor.rows(
     { ...vendorFilter, credit_balance: { $gt: 0 } },
-    { select: "credit_balance" },
+    { select: "company_name credit_balance" },
   );
   const partyCredit = sumBy(credits, (v) => v.credit_balance);
+  const creditList = credits
+    .map((v) => ({ id: v.id, party_name: v.company_name, credit: r2(v.credit_balance) }))
+    .sort((a, b) => b.credit - a.credit)
+    .slice(0, 10);
 
-  const r2 = (n) => Math.round(n * 100) / 100;
   return {
     advanceHeld: r2(advanceHeld), // advance sitting on open orders
-    advanceOrders, // how many orders have advance
-    partyCredit: r2(partyCredit), // extra cash saved per party
+    advanceOrders: advanceList.length, // how many orders have advance
+    advanceList: advanceList.slice(0, 500), // order by order proof of the advance number ( UI paginates )
+    partyCredit: r2(partyCredit), // extra money saved per party
     partyCreditParties: credits.length, // how many parties have credit
+    creditList,
     totalAdvance: r2(advanceHeld + partyCredit),
   };
 }
@@ -816,7 +830,20 @@ async function adminDashboard({
   const advance = await buildAdvanceStats(
     orders,
     vId === null ? {} : { id: vId },
+    refs,
   );
+
+  // Simple money split ( each order: paid part is capped at its own total )
+  //   sales = paidForOrders + pending      ( paidForOrders includes advance )
+  //   anything paid ABOVE an order total is "extra" and lives as party credit
+  const paidForOrders = sumBy(active, (o) =>
+    Math.min(o.amount_received || 0, o.grand_total || 0),
+  );
+  const unverifiedRows = await Payment.rows(
+    { is_verified: 0, status: { $in: [null, "PENDING_VERIFICATION"] } },
+    { select: "amount" },
+  );
+  const unverifiedAmount = sumBy(unverifiedRows, (p) => p.amount);
   const salesPersonsList = salesUsers.map((u) => ({ id: u.id, name: u.name }));
 
   // Clean 4-step pipeline: New -> Approved -> Packing -> Delivered
@@ -878,6 +905,11 @@ async function adminDashboard({
         partyCredit: advance.partyCredit,
         partyCreditParties: advance.partyCreditParties,
         totalAdvance: advance.totalAdvance,
+        // --- simple money summary ---
+        advanceList: advance.advanceList,
+        creditList: advance.creditList,
+        paidForOrders: Math.round(paidForOrders * 100) / 100,
+        unverifiedAmount: Math.round(unverifiedAmount * 100) / 100,
       },
       business: {
         totalParties: totalVendors,

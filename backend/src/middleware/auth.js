@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { User, Role, Permission } = require('../models');
 
-const SECRET = () => process.env.JWT_SECRET || 'petroflow-lubricant-erp-jwt-secret-2026';
+const SECRET = () => process.env.JWT_SECRET || 'Maxmol Lubricant-lubricant-erp-jwt-secret-2026';
 
 function generateToken(userId) {
   return jwt.sign({ userId }, SECRET(), { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
