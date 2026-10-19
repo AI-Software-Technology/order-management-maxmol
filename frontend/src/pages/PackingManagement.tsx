@@ -856,7 +856,7 @@ export const PackingManagement: React.FC<{ onNavigate: (page: string) => void }>
                       <div>
                         <p className="font-bold text-slate-900 text-xs">{it.product_name}</p>
                         <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 font-mono">
-                          <span>SKU: {it.sku}</span>
+                          {/* <span>SKU: {it.sku}</span> */}
                           <span>•</span>
                           <span>Brand: {it.brand_name}</span>
                           {it.item_colour && (
