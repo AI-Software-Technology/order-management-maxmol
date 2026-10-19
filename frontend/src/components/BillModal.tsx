@@ -381,7 +381,7 @@ const handlePrint = () => {
                           <td className="py-2.5 px-3 text-center text-slate-400">{idx + 1}</td>
                           <td className="py-2.5 px-3 font-medium text-slate-900">
                             <div>{it.product_name}</div>
-                            {it.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>}
+                            
                           </td>
                           <td className="py-2.5 px-3 text-center text-slate-600">{it.unit || 'Ltr'}</td>
                           <td className="py-2.5 px-3 text-right font-semibold text-slate-900">{it.quantity}</td>
