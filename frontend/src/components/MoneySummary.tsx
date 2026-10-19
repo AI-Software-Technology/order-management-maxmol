@@ -108,7 +108,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
           <p className="text-[10px] text-emerald-700 mt-0.5">Checked and approved by Accounts</p>
         </div>
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200">
-          <p className="text-[11px] font-semibold text-rose-800">Money Still To Collect</p>
+          <p className="text-[11px] font-semibold text-rose-800">Money Still To Pending </p>
           <p className="text-2xl font-black text-rose-700 font-mono mt-1">{inr(stillToCollect)}</p>
           <p className="text-[10px] text-rose-700 mt-0.5">Customers still have to pay this</p>
         </div>
@@ -266,7 +266,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
       {/* Step 4: things that are NOT part of sales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100">
         <div className="p-4 rounded-xl bg-violet-50 border border-violet-200">
-          <p className="text-[11px] font-bold text-violet-800">Credit on account</p>
+          <p className="text-[11px] font-bold text-violet-800">ADVANCE</p>
           <p className="text-xl font-black text-violet-700 font-mono mt-1">{inr(credit)}</p>
           <p className="text-[11px] text-violet-700 mt-0.5">
             {pay?.partyCreditParties || 0} {Number(pay?.partyCreditParties) === 1 ? 'party paid' : 'parties paid'} more than

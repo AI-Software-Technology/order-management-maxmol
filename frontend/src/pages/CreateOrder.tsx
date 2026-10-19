@@ -87,7 +87,7 @@ export const CreateOrder: React.FC<CreateOrderProps> = ({ onNavigate }) => {
   const [orderDeliveryDate, setOrderDeliveryDate] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
   const [orderNotes, setOrderNotes] = useState<string>('');
-  const [paymentTerms, setPaymentTerms] = useState<string>('Credit 30 Days');
+  const [paymentTerms, setPaymentTerms] = useState<string>('Advance');
   const [useCredit, setUseCredit] = useState<boolean>(false);
 
   // Submit / Success state

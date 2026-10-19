@@ -63,7 +63,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [requiredDeliveryDate, setRequiredDeliveryDate] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
   const [orderNotes, setOrderNotes] = useState<string>('');
-  const [paymentTerms, setPaymentTerms] = useState<string>('Credit 30 Days');
+  const [paymentTerms, setPaymentTerms] = useState<string>('Advance');
 
 
   const [transportName, setTransportName] = useState<string>('');
@@ -131,7 +131,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           setTransportAddress(ord.transportAddress || '');
           setBookingStation(ord.booking_station || '');
           setTransportContactNumber(ord.transport_contact_number || '');
-          setPaymentTerms(ord.payment_terms || 'Credit 30 Days');
+          setPaymentTerms(ord.payment_terms || 'Advance');
 
           // Map items to product rows
           const rows: EditProductRow[] = items.map(it => ({

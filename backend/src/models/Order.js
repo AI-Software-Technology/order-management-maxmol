@@ -20,7 +20,7 @@ module.exports = defineModel('Order', 'orders', {
   dispatch_status: str('NOT_DISPATCHED'),
   delivery_status: str('PENDING'),
   payment_status: str('UNPAID'),
-  payment_terms: str('Credit 30 Days'),
+  payment_terms: str('Advance'),
 
   tax_type: str('GST_18'),
   subtotal: num(0),

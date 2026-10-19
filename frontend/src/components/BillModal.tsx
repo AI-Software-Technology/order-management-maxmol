@@ -304,7 +304,7 @@ const handlePrint = () => {
                   </p>
                   <p className="text-[11px]"><span className="text-slate-500">Assigned Sales Person:</span> <strong className="text-slate-900">{bill.sales_person_name}</strong></p>
                   {bill.sales_person_mobile && <p className="text-[11px]"><span className="text-slate-500">Mobile:</span> {bill.sales_person_mobile}</p>}
-                  <p className="text-[11px]"><span className="text-slate-500">Payment Terms:</span> <strong>{bill.payment_terms || 'Credit 30 Days'}</strong></p>
+                  <p className="text-[11px]"><span className="text-slate-500">Payment Terms:</span> <strong>{bill.payment_terms || 'Advance'}</strong></p>
                   <div className="pt-2 flex items-center gap-2">
                     <span className="text-[10px] font-semibold text-slate-500">Payment Status:</span>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
