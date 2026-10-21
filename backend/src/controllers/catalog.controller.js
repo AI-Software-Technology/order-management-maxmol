@@ -3,6 +3,7 @@ const { Brand, Category, Product, Order, OrderItem } = require('../models');
 const FIELD_FOR = { Brand: 'brand_id', Category: 'category_id' };
 const { logActivity } = require('../utils/audit');
 const { toId, like, uniq } = require('../utils/helpers');
+const { resolveFileInput, deleteUploaded } = require('../utils/uploads');
 
 // ----------------------------- BRANDS & CATEGORIES -----------------------------
 const masterHandlers = (Model, label, key) => ({
@@ -112,6 +113,9 @@ exports.createProduct = async (req, res) => {
     /duplicate/i.test(e?.message || '') && /sku/i.test(e?.message || '') ||
     e?.code === 'ER_DUP_ENTRY' || e?.code === 11000 || e?.name === 'SequelizeUniqueConstraintError';
 
+  // base64 upload -> file on disk, DB keeps only the path
+  const imagePath = await resolveFileInput(image_url || '', 'products', req);
+
   let product, sku;
   for (let attempt = 0; attempt < 5; attempt++) {
     sku = await nextSku();
@@ -120,12 +124,13 @@ exports.createProduct = async (req, res) => {
         sku,
         name, brand_id: Number(brand_id), category_id: Number(category_id), unit: cleanUnit,
         min_order_qty: 1, standard_rate: Number(standard_rate) || 0,
-        description: description || '', image_url: image_url || '',
+        description: description || '', image_url: imagePath || '',
         item_colour: item_colour || 'Golden Yellow', status: status || 'active',
       });
       break;
     } catch (e) {
       if (!isDupSku(e) || attempt === 4) {
+        await deleteUploaded(imagePath);
         return res.status(isDupSku(e) ? 409 : 500).json({ error: e.message });
       }
     }
@@ -141,16 +146,25 @@ exports.updateProduct = async (req, res) => {
   const cleanUnit = (unit || '').toString().trim();
   if (!cleanUnit) return res.status(400).json({ error: 'Packing Unit is required' });
 
+  const existing = id === null ? null : await Product.row({ id }, { select: 'image_url' });
+  // base64 upload -> file on disk, DB keeps only the path
+  const imagePath = await resolveFileInput(image_url, 'products', req);
+
   await Product.updateOne(
     { id },
     {
       $set: {
         name, brand_id: Number(brand_id), category_id: Number(category_id), unit: cleanUnit,
         standard_rate: standard_rate === undefined || standard_rate === null || standard_rate === '' ? null : Number(standard_rate),
-        description, image_url, item_colour: item_colour || 'Golden Yellow', status: status || 'active',
+        description, image_url: imagePath, item_colour: item_colour || 'Golden Yellow', status: status || 'active',
       },
     }
   );
+
+  // old file is no longer referenced -> remove from disk
+  if (existing?.image_url && imagePath !== undefined && existing.image_url !== imagePath) {
+    await deleteUploaded(existing.image_url);
+  }
 
   await logActivity(req.user.id, 'PRODUCT_UPDATED', 'product', req.params.id, `Updated product specs for ${name} (Packing Unit: ${cleanUnit})`);
   res.json({ message: 'Product updated successfully' });
@@ -169,6 +183,7 @@ exports.deleteProduct = async (req, res) => {
     });
   }
   await Product.deleteOne({ id });
+  await deleteUploaded(product.image_url);
   await logActivity(req.user.id, 'PRODUCT_DELETED', 'product', product.sku, `Deleted product ${product.name} (${product.sku})`);
   res.json({ message: 'Product deleted successfully' });
 };

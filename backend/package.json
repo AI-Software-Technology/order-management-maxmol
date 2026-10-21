@@ -10,7 +10,8 @@
     "start": "node server.js",
     "seed": "node src/scripts/seed.js",
     "seed:reset": "node src/scripts/seed.js --force",
-    "migrate:sqlite": "node src/scripts/migrate-sqlite.js"
+    "migrate:sqlite": "node src/scripts/migrate-sqlite.js",
+    "migrate:images": "node src/scripts/migrate-base64-to-disk.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

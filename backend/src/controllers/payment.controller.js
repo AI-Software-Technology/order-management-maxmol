@@ -4,6 +4,7 @@ const { logActivity, sendNotification, addHistory } = require('../utils/audit');
 const { toId, like, nowStr, round2, addDateRange, sumBy, uniq, inr } = require('../utils/helpers');
 const { resolveIdsByIdOrName, idsMatching, isActive } = require('../utils/queries');
 const { syncOrderExcess } = require('../utils/credit');
+const { resolveFileInput, deleteUploaded } = require('../utils/uploads');
 
 const isVerified = (p) => p.is_verified === 1 || p.status === 'VERIFIED';
 
@@ -310,6 +311,9 @@ async function submitPayment(req, res, targetOrderId) {
   const id = await Payment.nextId();
   const payNumber = `PAY-${10000 + id}`;
 
+  // base64 proof -> file on disk, DB keeps only the path
+  const proofPath = await resolveFileInput(proof_url || null, 'payments', req);
+
   await Payment.insert({
     id,
     payment_number: payNumber,
@@ -318,7 +322,7 @@ async function submitPayment(req, res, targetOrderId) {
     payment_date: payment_date || new Date().toISOString().slice(0, 10),
     payment_mode: payment_mode || 'Bank Transfer',
     reference_number: reference_number || `TXN-${Date.now().toString().slice(-6)}`,
-    proof_url: proof_url || null,
+    proof_url: proofPath || null,
     status: 'PENDING_VERIFICATION',
     notes: excessAmt > 0 ? `${notes ? notes + ' | ' : ''}Includes ₹${inr(excessAmt)} extra - will be saved as party credit` : notes || null,
     is_verified: 0,
@@ -450,6 +454,9 @@ exports.update = async (req, res) => {
   const updatedMode = payment_mode || payment.payment_mode;
   const updatedRef = reference_number !== undefined ? trimOrNull(reference_number) : payment.reference_number;
 
+  // base64 proof -> file on disk, DB keeps only the path
+  const newProof = proof_url !== undefined ? await resolveFileInput(trimOrNull(proof_url), 'payments', req) : payment.proof_url;
+
   await Payment.updateOne(
     { id },
     {
@@ -458,13 +465,16 @@ exports.update = async (req, res) => {
         payment_date: payment_date || payment.payment_date,
         payment_mode: updatedMode,
         reference_number: updatedRef,
-        proof_url: proof_url !== undefined ? trimOrNull(proof_url) : payment.proof_url,
+        proof_url: newProof,
         notes: notes !== undefined ? trimOrNull(notes) : payment.notes,
         updated_by_id: user.id,
         updated_at: nowStr(),
       },
     }
   );
+
+  // proof replaced or removed -> delete old file from disk
+  if (payment.proof_url && payment.proof_url !== newProof) await deleteUploaded(payment.proof_url);
 
   // Order Total -> Verified Received -> Balance Payment
   const ledger = await recalcOrderLedger(order, { rounded: true, userId: user.id });
