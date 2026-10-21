@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Search, Plus, Filter, RefreshCw, X, Tag, Upload, Link as LinkIcon, Edit, Eye, Trash2, CheckCircle2 } from 'lucide-react';
+import { Package, Search, Plus, Filter, RefreshCw, X, Tag, Upload, Link as LinkIcon, Edit, Eye, Trash2, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../store/authStore.js';
 import { Product } from '../types.js';
 import { apiFetch } from '../lib/api.js';
@@ -17,6 +17,10 @@ export const Products: React.FC = () => {
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Add / Edit Modal state
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -89,6 +93,11 @@ export const Products: React.FC = () => {
     fetchMasters();
     fetchProducts();
   }, [brandFilter, categoryFilter]);
+
+  // Back to first page whenever the result set changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, brandFilter, categoryFilter, pageSize]);
 
   // Handle local image upload (Option 1)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,6 +214,32 @@ export const Products: React.FC = () => {
     );
   });
 
+  // Pagination (client-side)
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * pageSize;
+  const pagedProducts = filteredProducts.slice(startIdx, startIdx + pageSize);
+  const showingFrom = totalItems === 0 ? 0 : startIdx + 1;
+  const showingTo = Math.min(startIdx + pageSize, totalItems);
+
+  const pageNumbers = (() => {
+    const nums: (number | '...')[] = [];
+    const add = (n: number | '...') => nums.push(n);
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) add(i);
+    } else {
+      add(1);
+      if (currentPage > 3) add('...');
+      const from = Math.max(2, currentPage - 1);
+      const to = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = from; i <= to; i++) add(i);
+      if (currentPage < totalPages - 2) add('...');
+      add(totalPages);
+    }
+    return nums;
+  })();
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6   mx-auto">
       {/* Header */}
@@ -288,7 +323,7 @@ export const Products: React.FC = () => {
           ) : filteredProducts.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs">No products matching criteria.</div>
           ) : (
-            filteredProducts.map(p => (
+            pagedProducts.map(p => (
               <div key={p.id} className="p-4 space-y-3 hover:bg-slate-50/70 transition">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -380,7 +415,7 @@ export const Products: React.FC = () => {
                   <td colSpan={10} className="py-12 text-center text-slate-400">No products matching criteria.</td>
                 </tr>
               ) : (
-                filteredProducts.map(p => (
+                pagedProducts.map(p => (
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                     {/* Thumbnail */}
                     <td className="py-3 px-4">
@@ -448,6 +483,64 @@ export const Products: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {!loading && totalItems > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 bg-slate-50 text-xs">
+            <div className="flex items-center gap-3 text-slate-600">
+              <span>
+                Showing <b className="text-slate-900">{showingFrom}</b>–<b className="text-slate-900">{showingTo}</b> of{' '}
+                <b className="text-slate-900">{totalItems}</b> products
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="py-1 px-2 bg-white border border-slate-200 rounded-lg text-xs"
+                title="Rows per page"
+              >
+                {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {pageNumbers.map((n, i) =>
+                n === '...' ? (
+                  <span key={`dots-${i}`} className="px-2 text-slate-400">…</span>
+                ) : (
+                  <button
+                    key={n}
+                    onClick={() => setPage(n)}
+                    className={`min-w-[30px] px-2 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                      n === currentPage
+                        ? 'bg-amber-500 border-amber-500 text-slate-950'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add / Edit Product Modal */}
