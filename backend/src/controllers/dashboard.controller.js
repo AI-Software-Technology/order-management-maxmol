@@ -22,6 +22,13 @@ const {
   isShortRange,
 } = require("../utils/helpers");
 const {
+  todayLocal,
+  localDateOf,
+  localMonthOf,
+  localInRange,
+  addLocalDateRange,
+} = require("../utils/localtime");
+const {
   loadOrderRefs,
   loadItemsByOrder,
   getSalesPersonUsers,
@@ -141,7 +148,7 @@ function statusTotals(orders) {
 
 function buildTrend(orders, short, keyName) {
   const groups = groupBy(orders, (o) =>
-    short ? dateOf(o.created_at) : monthOf(o.created_at),
+    short ? localDateOf(o.created_at) : localMonthOf(o.created_at),
   );
   return [...groups.entries()]
     .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
@@ -257,7 +264,7 @@ async function salesPersonDashboard(user, { sDate, eDate }) {
   const canViewPayments =
     isSuperAdmin || user.permissions.includes("payments:view");
 
-  const filter = addDateRange(
+  const filter = addLocalDateRange(
     { sales_person_id: user.id },
     "created_at",
     sDate,
@@ -361,8 +368,8 @@ async function salesPersonDashboard(user, { sDate, eDate }) {
 // 2. PACKING TEAM DASHBOARD (no financial data at all)
 // ---------------------------------------------------------------------------
 async function packingDashboard({ sDate, eDate, sales_person_id, vendor_id }) {
-  const today = todayStr();
-  const filter = addDateRange(
+  const today = todayLocal();
+  const filter = addLocalDateRange(
     { order_status: { $ne: "CANCELLED" } },
     "created_at",
     sDate,
@@ -418,11 +425,11 @@ async function packingDashboard({ sDate, eDate, sales_person_id, vendor_id }) {
 
   const [todayDeliveredOrders, todayPacking, toPackItems] = await Promise.all([
     Order.countDocuments({
-      ...addDateRange({}, "delivered_at", today, today),
+      ...addLocalDateRange({}, "delivered_at", today, today),
       $or: [{ order_status: "DELIVERED" }, { delivery_status: "DELIVERED" }],
     }),
     Order.countDocuments({
-      ...addDateRange({}, "updated_at", today, today),
+      ...addLocalDateRange({}, "updated_at", today, today),
       packing_status: { $in: ["PACKED", "IN_PROGRESS", "HANDED_OVER"] },
     }),
     toPackIds.length
@@ -506,7 +513,7 @@ async function packingDashboard({ sDate, eDate, sales_person_id, vendor_id }) {
 // 3. ACCOUNTS TEAM DASHBOARD (payments, verification, collections)
 // ---------------------------------------------------------------------------
 async function accountsDashboard({ sDate, eDate }) {
-  const today = todayStr();
+  const today = todayLocal();
   const thisMonth = today.slice(0, 7);
 
   const [allPayments, activeOrders] = await Promise.all([
@@ -651,7 +658,7 @@ async function adminDashboard({
   vendor_id,
   order_status,
 }) {
-  const today = todayStr();
+  const today = todayLocal();
   const thisMonth = today.slice(0, 7);
   const spId = isActive(sales_person_id) ? Number(sales_person_id) : null;
   const vId = isActive(vendor_id) ? Number(vendor_id) : null;
@@ -667,7 +674,7 @@ async function adminDashboard({
     (o) =>
       bySpVendor(o) &&
       (statusFilter === null || o.order_status === statusFilter) &&
-      ((!sDate && !eDate) || inDateRange(o.created_at, sDate, eDate)),
+      ((!sDate && !eDate) || localInRange(o.created_at, sDate, eDate)),
   );
   const active = orders.filter(notCancelled);
   const t = statusTotals(orders);
@@ -675,11 +682,11 @@ async function adminDashboard({
   // Today / this month sales ( respect sales person + party filter )
   const liveOrders = allOrders.filter((o) => notCancelled(o) && bySpVendor(o));
   const todaySales = sumBy(
-    liveOrders.filter((o) => dateOf(o.created_at) === today),
+    liveOrders.filter((o) => localDateOf(o.created_at) === today),
     (o) => o.grand_total,
   );
   const thisMonthSales = sumBy(
-    liveOrders.filter((o) => monthOf(o.created_at) === thisMonth),
+    liveOrders.filter((o) => localMonthOf(o.created_at) === thisMonth),
     (o) => o.grand_total,
   );
 
@@ -784,7 +791,7 @@ async function adminDashboard({
   for (const u of salesUsers) {
     const mine = ordersBySp.get(u.id) || [];
     const inRange = mine.filter(
-      (o) => (!sDate && !eDate) || inDateRange(o.created_at, sDate, eDate),
+      (o) => (!sDate && !eDate) || localInRange(o.created_at, sDate, eDate),
     );
     if (mine.length && !inRange.length) continue;
     const live = inRange.filter(notCancelled);
