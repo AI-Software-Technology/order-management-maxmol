@@ -47,7 +47,7 @@ import { MoneySummary } from "../components/MoneySummary.js";
 export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
   onNavigate,
 }) => {
- 
+
   const { user, hasPermission } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1234,13 +1234,13 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
                       <td className="py-3 px-4">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${ord.packing_status === "PACKED" ||
-                              ord.packing_status === "HANDED_OVER"
-                              ? "bg-teal-50 text-teal-700 border-teal-200"
-                              : ord.packing_status === "IN_PROGRESS"
-                                ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                                : ord.packing_status === "ON_HOLD"
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                            ord.packing_status === "HANDED_OVER"
+                            ? "bg-teal-50 text-teal-700 border-teal-200"
+                            : ord.packing_status === "IN_PROGRESS"
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              : ord.packing_status === "ON_HOLD"
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
                             }`}
                         >
                           {ord.packing_status || "PENDING_PACKING"}
@@ -1984,7 +1984,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
         </div>
       </div>
 
-  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
@@ -2006,6 +2006,14 @@ export const Dashboard: React.FC<{ onNavigate: (page: string) => void }> = ({
         <div className="lg:col-span-2">
           <MoneySummary sales={salesCat} pay={paymentsCat} onNavigate={onNavigate} />
         </div>
+      </div> */}
+
+      <div className="w-full">
+        <MoneySummary
+          sales={salesCat}
+          pay={paymentsCat}
+          onNavigate={onNavigate}
+        />
       </div>
 
       {/* CATEGORY 3: PACKING READINESS & DELIVERY STATUS */}

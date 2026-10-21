@@ -96,7 +96,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
       </div>
 
       {/* Step 1: three big numbers */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
           <p className="text-[11px] font-semibold text-slate-500">Total Sales</p>
           <p className="text-2xl font-black text-slate-900 font-mono mt-1">{inr(total)}</p>
@@ -108,9 +108,50 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
           <p className="text-[10px] text-emerald-700 mt-0.5">Checked and approved by Accounts</p>
         </div>
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200">
-          <p className="text-[11px] font-semibold text-rose-800">Money Still To Pending </p>
+          <p className="text-[11px] font-semibold text-rose-800">Pending </p>
           <p className="text-2xl font-black text-rose-700 font-mono mt-1">{inr(stillToCollect)}</p>
           <p className="text-[10px] text-rose-700 mt-0.5">Customers still have to pay this</p>
+        </div>
+
+
+        <div className="p-4 rounded-xl bg-violet-50 border border-violet-200">
+          <p className="text-[11px] font-bold text-violet-800">ADVANCE</p>
+          <p className="text-xl font-black text-violet-700 font-mono mt-1">{inr(credit)}</p>
+          <p className="text-[11px] text-violet-700 mt-0.5">
+            {pay?.partyCreditParties || 0} {Number(pay?.partyCreditParties) === 1 ? 'party paid' : 'parties paid'} more than
+            their order. We keep the extra money safe in their name. It is not part of sales, and it can be used on
+            their next order or bill.
+          </p>
+          {creditList.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowCredit((v) => !v)}
+                className="mt-2 text-[11px] font-bold text-violet-700 underline"
+              >
+                {showCredit ? 'Hide parties' : 'Show which parties'}
+              </button>
+              {showCredit && (
+                <ul className="mt-1.5 space-y-1">
+                  {creditList.map((c) => (
+                    <li key={c.id} className="flex justify-between text-[11px] text-violet-900">
+                      <span className="truncate pr-2">{c.party_name}</span>
+                      <span className="font-mono font-bold">{inr(c.credit)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+          <p className="text-[11px] font-bold text-amber-800">Waiting for Accounts approval</p>
+          <p className="text-xl font-black text-amber-900 font-mono mt-1">{inr(waitingAmount)}</p>
+          <p className="text-[11px] text-amber-700 mt-0.5">
+            {waitingCount} {waitingCount === 1 ? 'payment is' : 'payments are'} entered but not approved yet. This money is
+            not counted in "Money Received" until Accounts approves it.
+          </p>
         </div>
       </div>
 
@@ -263,48 +304,6 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
         )}
       </div>
 
-      {/* Step 4: things that are NOT part of sales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-        <div className="p-4 rounded-xl bg-violet-50 border border-violet-200">
-          <p className="text-[11px] font-bold text-violet-800">ADVANCE</p>
-          <p className="text-xl font-black text-violet-700 font-mono mt-1">{inr(credit)}</p>
-          <p className="text-[11px] text-violet-700 mt-0.5">
-            {pay?.partyCreditParties || 0} {Number(pay?.partyCreditParties) === 1 ? 'party paid' : 'parties paid'} more than
-            their order. We keep the extra money safe in their name. It is not part of sales, and it can be used on
-            their next order or bill.
-          </p>
-          {creditList.length > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowCredit((v) => !v)}
-                className="mt-2 text-[11px] font-bold text-violet-700 underline"
-              >
-                {showCredit ? 'Hide parties' : 'Show which parties'}
-              </button>
-              {showCredit && (
-                <ul className="mt-1.5 space-y-1">
-                  {creditList.map((c) => (
-                    <li key={c.id} className="flex justify-between text-[11px] text-violet-900">
-                      <span className="truncate pr-2">{c.party_name}</span>
-                      <span className="font-mono font-bold">{inr(c.credit)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-          <p className="text-[11px] font-bold text-amber-800">Waiting for Accounts approval</p>
-          <p className="text-xl font-black text-amber-900 font-mono mt-1">{inr(waitingAmount)}</p>
-          <p className="text-[11px] text-amber-700 mt-0.5">
-            {waitingCount} {waitingCount === 1 ? 'payment is' : 'payments are'} entered but not approved yet. This money is
-            not counted in "Money Received" until Accounts approves it.
-          </p>
-        </div>
-      </div>
     </div>
   );
 };
