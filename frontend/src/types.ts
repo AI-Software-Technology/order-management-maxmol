@@ -375,6 +375,7 @@ export interface Bill {
   party_state?: string;
   party_address?: string;
   party_gstin?: string;
+  party_aadhar?:string;
   party_mobile?: string;
   party_email?: string;
   company_id: number;

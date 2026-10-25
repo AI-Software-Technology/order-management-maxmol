@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { IndianRupee, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Money Summary ( Admin dashboard )
+// Payment Summary ( Admin dashboard )
 //
 //   Total Sales  =  Delivered and paid  +  Paid in advance  +  Still to collect
 //
@@ -90,7 +90,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
           <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-          Money Summary
+          Payment Summary
         </h3>
         <span className="text-[10px] text-slate-400">Orders in the selected dates</span>
       </div>
@@ -103,7 +103,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
           <p className="text-[10px] text-slate-500 mt-0.5">Value of all the orders</p>
         </div>
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-          <p className="text-[11px] font-semibold text-emerald-800">Money Received</p>
+          <p className="text-[11px] font-semibold text-emerald-800">Payment Received</p>
           <p className="text-2xl font-black text-emerald-700 font-mono mt-1">{inr(paid)}</p>
           <p className="text-[10px] text-emerald-700 mt-0.5">Checked and approved by Accounts</p>
         </div>
@@ -119,7 +119,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
           <p className="text-xl font-black text-violet-700 font-mono mt-1">{inr(credit)}</p>
           <p className="text-[11px] text-violet-700 mt-0.5">
             {pay?.partyCreditParties || 0} {Number(pay?.partyCreditParties) === 1 ? 'party paid' : 'parties paid'} more than
-            their order. We keep the extra money safe in their name. It is not part of sales, and it can be used on
+            their order. We keep the extra Payment safe in their name. It is not part of sales, and it can be used on
             their next order or bill.
           </p>
           {creditList.length > 0 && (
@@ -149,14 +149,14 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
           <p className="text-[11px] font-bold text-amber-800">Waiting for Accounts approval</p>
           <p className="text-xl font-black text-amber-900 font-mono mt-1">{inr(waitingAmount)}</p>
           <p className="text-[11px] text-amber-700 mt-0.5">
-            {waitingCount} {waitingCount === 1 ? 'payment is' : 'payments are'} entered but not approved yet. This money is
-            not counted in "Money Received" until Accounts approves it.
+            {waitingCount} {waitingCount === 1 ? 'payment is' : 'payments are'} entered but not approved yet. This Payment is
+            not counted in "Payment Received" until Accounts approves it.
           </p>
         </div>
       </div>
 
       {/* Step 2: the bar and the sum */}
-      <div>
+      {/* <div>
         <p className="text-xs font-bold text-slate-800 mb-1.5">Where does the {inr(total)} of sales go?</p>
         <div className="w-full h-5 rounded-full overflow-hidden flex bg-slate-100">
           {parts.map((p) => (
@@ -190,20 +190,20 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
             <span className="font-mono font-black text-slate-900">{inr(total)}</span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Step 3: how the advance number is made */}
-      <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+      {/* <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
         <div className="flex items-start gap-2">
           <Info className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
           <div className="text-xs text-indigo-900 space-y-1">
             <p className="font-bold">What is "Paid in advance"?</p>
             <p>
-              Think of a shop. You pay for 10 items, but the shop gives you only 4 today. The money for the other 6 items
+              Think of a shop. You pay for 10 items, but the shop gives you only 4 today. The Payment for the other 6 items
               is "paid in advance". It stays on the order until those 6 items are delivered.
             </p>
             <p className="font-semibold">
-              Advance = Money paid on the order − Value of goods already delivered
+              Advance = Payment paid on the order − Value of goods already delivered
             </p>
           </div>
         </div>
@@ -220,7 +220,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
         {showAdvance && (
           <div className="mt-3 overflow-x-auto bg-white rounded-lg border border-indigo-200">
             {advanceList.length === 0 ? (
-              <p className="p-3 text-xs text-slate-500">No order has advance money right now.</p>
+              <p className="p-3 text-xs text-slate-500">No order has advance Payment right now.</p>
             ) : (
               <table className="w-full text-left text-xs">
                 <thead>
@@ -302,7 +302,7 @@ export const MoneySummary: React.FC<Props> = ({ sales, pay, onNavigate }) => {
             )}
           </div>
         )}
-      </div>
+      </div> */}
 
     </div>
   );

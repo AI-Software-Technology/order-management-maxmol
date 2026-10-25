@@ -304,6 +304,14 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         required_delivery_date: requiredDeliveryDate || null,
         special_instructions: specialInstructions,
         notes: orderNotes,
+
+
+        // transport details
+        transportName: transportName,
+        transportAddress: transportAddress,
+        booking_station: bookingStation,
+        transport_contact_number: transportContactNumber,
+
         payment_terms: paymentTerms,
         items: productRows.map(r => ({
           product_id: r.product_id,
@@ -417,8 +425,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
               {/* Delivered Order Notice */}
               {isDelivered && (
                 <div className={`p-3 rounded-xl border flex items-start gap-3 ${isDeliveredBlocked
-                    ? 'bg-rose-50 border-rose-300 text-rose-900'
-                    : 'bg-amber-50 border-amber-300 text-amber-900'
+                  ? 'bg-rose-50 border-rose-300 text-rose-900'
+                  : 'bg-amber-50 border-amber-300 text-amber-900'
                   }`}>
                   <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
@@ -480,7 +488,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
               </div>
 
 
-                    {/* Transport Details */}
+              {/* Transport Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                 {/* Transport Name */}
                 <div>
@@ -497,7 +505,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
-                
+
                 {/* Transport Address */}
                 <div>
                   <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
@@ -514,7 +522,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
-                
+
                 {/* Booking Station */}
                 <div>
                   <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
@@ -530,7 +538,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
-                
+
                 {/* Transport Contact Number */}
                 <div>
                   <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
@@ -570,8 +578,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                         type="button"
                         onClick={() => setTaxType('GST_18')}
                         className={`px-3 py-1.5 rounded-md font-bold text-xs transition ${taxType === 'GST_18'
-                            ? 'bg-amber-500 text-slate-950 shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
                           }`}
                       >
                         GST 18%
@@ -580,8 +588,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                         type="button"
                         onClick={() => setTaxType('NON_GST')}
                         className={`px-3 py-1.5 rounded-md font-bold text-xs transition ${taxType === 'NON_GST'
-                            ? 'bg-slate-800 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-slate-800 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
                           }`}
                       >
                         Non-GST

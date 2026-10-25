@@ -234,6 +234,7 @@ exports.getOne = async (req, res) => {
     party_name: v?.company_name ?? null, party_contact: v?.contact_person ?? null, party_city: v?.city ?? null,
     party_state: v?.state ?? null, party_address: v?.billing_address ?? null, party_gstin: v?.gstin ?? null,
     party_mobile: v?.mobile ?? null, party_email: v?.email ?? null,
+    party_aadhar: v?.aadhaar_no ?? null,
     ...companyFields(c, true),
     sales_person_name: u?.name ?? null, sales_person_mobile: u?.mobile ?? null, sales_person_email: u?.email ?? null,
     ...figures,

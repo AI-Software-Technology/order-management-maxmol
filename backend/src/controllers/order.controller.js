@@ -482,6 +482,7 @@ exports.update = async (req, res) => {
     transportAddress, booking_station, transport_contact_number, company_id, vendor_id, items, tax_type = order.tax_type || 'GST_18', notes, delivery_address, transportName,
     delivery_contact_person, delivery_contact_number, required_delivery_date, special_instructions, payment_terms,
   } = req.body;
+  console.log(req.body)
 
   const targetCompanyId = company_id ? Number(company_id) : order.company_id;
   const targetVendorId = vendor_id ? Number(vendor_id) : order.vendor_id;

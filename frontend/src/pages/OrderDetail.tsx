@@ -781,11 +781,18 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                         <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200">
                           <div>
                             <span className="text-[10px] text-slate-400 font-semibold uppercase block">
-                              Ordered Qty
+                              Ordered
                             </span>
                             <span className="font-bold text-slate-800">
-                              {it.quantity} {it.unit}
+                              {it.quantity}
                             </span>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase block">
+                              Qty
+                            </span>
+                            <span className="font-bold text-slate-800">
+                              {it.unit}
+                            </span>
+
                           </div>
                           <div className="text-right">
                             <span className="text-[10px] text-slate-400 font-semibold uppercase block">
@@ -837,7 +844,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                             Ordered Qty
                           </th>
                           <th className="py-2.5 px-3 text-right">
-                              Unit
+                            Unit
                           </th>
 
                           <th className="py-2.5 px-3 text-right">Dispatched</th>
@@ -956,29 +963,29 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                     </div>
 
                     {/* Transport Details */}
-<div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1 md:col-span-2">
-  <p className="font-bold uppercase text-[11px] tracking-wide text-slate-500 mb-2 flex items-center gap-1.5">
-    <Truck className="w-3.5 h-3.5" /> Transport Details
-  </p>
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-    <div>
-      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Name</span>
-      <span className="font-bold text-slate-900">{order.transportName || "—"}</span>
-    </div>
-    <div>
-      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Booking Station</span>
-      <span className="font-bold text-slate-900">{order.booking_station || "—"}</span>
-    </div>
-    <div>
-      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Contact</span>
-      <span className="font-mono font-bold text-slate-900">{order.transport_contact_number || "—"}</span>
-    </div>
-    <div>
-      <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Address</span>
-      <span className="text-slate-800">{order.transportAddress || "—"}</span>
-    </div>
-  </div>
-</div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1 md:col-span-2">
+                      <p className="font-bold uppercase text-[11px] tracking-wide text-slate-500 mb-2 flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5" /> Transport Details
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Name</span>
+                          <span className="font-bold text-slate-900">{order.transportName || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase block">Booking Station</span>
+                          <span className="font-bold text-slate-900">{order.booking_station || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Contact</span>
+                          <span className="font-mono font-bold text-slate-900">{order.transport_contact_number || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase block">Transport Address</span>
+                          <span className="text-slate-800">{order.transportAddress || "—"}</span>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1.5 font-sans">
                       <p className="font-bold uppercase text-[11px] tracking-wide text-slate-500 mb-2">
