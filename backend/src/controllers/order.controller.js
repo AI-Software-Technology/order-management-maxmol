@@ -268,6 +268,7 @@ exports.getOne = async (req, res) => {
     ...o,
     vendor_name: v?.company_name ?? null, vendor_contact: v?.contact_person ?? null, vendor_mobile: v?.mobile ?? null,
     vendor_email: v?.email ?? null, vendor_gstin: v?.gstin ?? null, vendor_billing_address: v?.billing_address ?? null,
+    vendor_aadhar: v?.aadhaar_no || null,
     vendor_delivery_address: v?.delivery_address ?? null, vendor_city: v?.city ?? null, vendor_state: v?.state ?? null,
     vendor_pincode: v?.pincode ?? null,
     tax_regime: taxRegime(o.tax_type, v?.state, c?.state),

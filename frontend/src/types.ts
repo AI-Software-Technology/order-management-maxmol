@@ -8,7 +8,7 @@ export interface User {
   mobile?: string;
   employee_id?: string;
   avatar_url?: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   permissions: string[];
   created_at?: string;
 }
@@ -226,47 +226,47 @@ export interface NotificationItem {
   role_slug?: string;
   title: string;
   message: string;
-  type: 'info' | 'warning' | 'success' | 'error';
+  type: "info" | "warning" | "success" | "error";
   order_id?: number;
   is_read: number;
   created_at: string;
 }
 
 export type OrderStatus =
-  | 'NEW'
-  | 'ACCEPTED'
-  | 'APPROVED'
-  | 'PROCESSING'
-  | 'PACKING'
-  | 'READY_FOR_DISPATCH'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+  | "NEW"
+  | "ACCEPTED"
+  | "APPROVED"
+  | "PROCESSING"
+  | "PACKING"
+  | "READY_FOR_DISPATCH"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "COMPLETED"
+  | "CANCELLED";
 
 export type ProductionStatus =
-  | 'NOT_ASSIGNED'
-  | 'ASSIGNED'
-  | 'IN_PRODUCTION'
-  | 'PARTIALLY_PRODUCED'
-  | 'PRODUCTION_COMPLETED';
+  | "NOT_ASSIGNED"
+  | "ASSIGNED"
+  | "IN_PRODUCTION"
+  | "PARTIALLY_PRODUCED"
+  | "PRODUCTION_COMPLETED";
 
 export type DispatchStatus =
-  | 'NOT_DISPATCHED'
-  | 'PARTIALLY_DISPATCHED'
-  | 'FULLY_DISPATCHED';
+  | "NOT_DISPATCHED"
+  | "PARTIALLY_DISPATCHED"
+  | "FULLY_DISPATCHED";
 
 export type DeliveryStatus =
-  | 'PENDING'
-  | 'OUT_FOR_DELIVERY'
-  | 'PARTIALLY_DELIVERED'
-  | 'DELIVERED';
+  | "PENDING"
+  | "OUT_FOR_DELIVERY"
+  | "PARTIALLY_DELIVERED"
+  | "DELIVERED";
 
 export type PaymentStatus =
-  | 'UNPAID'
-  | 'ADVANCE_RECEIVED'
-  | 'PARTIALLY_PAID'
-  | 'FULLY_PAID';
+  | "UNPAID"
+  | "ADVANCE_RECEIVED"
+  | "PARTIALLY_PAID"
+  | "FULLY_PAID";
 
 export interface Order {
   id: number;
@@ -287,10 +287,10 @@ export interface Order {
   billing_company_ifsc?: string;
   billing_company_branch?: string;
   billing_company_terms?: string;
-transportName?: string | null;
-transportAddress?: string | null;
-booking_station?: string | null;
-transport_contact_number?: string | null;
+  transportName?: string | null;
+  transportAddress?: string | null;
+  booking_station?: string | null;
+  transport_contact_number?: string | null;
   vendor_id: number;
   vendor_name: string;
   vendor_contact?: string;
@@ -302,7 +302,7 @@ transport_contact_number?: string | null;
   vendor_city?: string;
   vendor_state?: string;
   vendor_pincode?: string;
-
+  vendor_aadhar?: string;
   sales_person_id: number;
   sales_person_name: string;
   sales_person_email?: string;
@@ -318,7 +318,7 @@ transport_contact_number?: string | null;
 
   payment_terms: string;
   tax_type?: string;
-  tax_regime?: 'CGST_SGST' | 'IGST' | 'NONE' | string;
+  tax_regime?: "CGST_SGST" | "IGST" | "NONE" | string;
   subtotal: number;
   discount_amount: number;
   tax_rate: number;
@@ -375,7 +375,7 @@ export interface Bill {
   party_state?: string;
   party_address?: string;
   party_gstin?: string;
-  party_aadhar?:string;
+  party_aadhar?: string;
   party_mobile?: string;
   party_email?: string;
   company_id: number;
@@ -399,8 +399,8 @@ export interface Bill {
   sales_person_name: string;
   sales_person_mobile?: string;
   sales_person_email?: string;
-  tax_type: 'GST_18' | 'NON_GST' | string;
-  tax_regime?: 'CGST_SGST' | 'IGST' | 'NONE' | string;
+  tax_type: "GST_18" | "NON_GST" | string;
+  tax_regime?: "CGST_SGST" | "IGST" | "NONE" | string;
   bill_amount: number;
   taxable_amount: number;
   gst_amount: number;
@@ -409,7 +409,7 @@ export interface Bill {
   tax_rate: number;
   received_amount: number;
   balance_payment: number;
-  payment_status: 'PAID' | 'PARTIAL' | 'UNPAID' | string;
+  payment_status: "PAID" | "PARTIAL" | "UNPAID" | string;
   order_status: string;
   payment_terms?: string;
   notes?: string;
@@ -420,4 +420,3 @@ export interface Bill {
   items?: OrderItem[];
   payments?: Payment[];
 }
-

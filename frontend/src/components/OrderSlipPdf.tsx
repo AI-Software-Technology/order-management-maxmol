@@ -71,13 +71,13 @@ const s = StyleSheet.create({
   tr: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.text, paddingVertical: 3, borderTopWidth: 1, borderTopColor: C.text },
   trAlt: { backgroundColor: C.softer, borderWidth: 1, borderColor: C.text, },
   td: { paddingHorizontal: 4, fontSize: 8 },
-cIdx: { width: '5%', textAlign: 'center' },
-cImg: { width: '8%', alignItems: 'center' },
-cName: { width: '34%' },
-cQty: { width: '8%', textAlign: 'center' },
-cUnit: { width: '8%', textAlign: 'center' },
-cRate: { width: '17%', textAlign: 'right' },
-cAmt: { width: '20%', textAlign: 'right' },
+  cIdx: { width: '5%', textAlign: 'center' },
+  cImg: { width: '8%', alignItems: 'center' },
+  cName: { width: '34%' },
+  cQty: { width: '8%', textAlign: 'center' },
+  cUnit: { width: '8%', textAlign: 'center' },
+  cRate: { width: '17%', textAlign: 'right' },
+  cAmt: { width: '20%', textAlign: 'right' },
   thumb: { width: 24, height: 24, borderRadius: 3, borderWidth: 1, borderColor: C.line, objectFit: 'cover' },
   thumbEmpty: { width: 24, height: 24, borderRadius: 3, borderWidth: 1, borderColor: C.line, backgroundColor: C.soft },
   itemName: { fontWeight: 700, color: C.ink },
@@ -204,8 +204,17 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
               <Text style={s.label}>PARTY INFORMATION</Text>
               <Text style={s.partyName}>{order.vendor_name}</Text>
               <Text style={s.line}>Attn: {order.vendor_contact || 'Purchase Department'}</Text>
+
               <Text style={s.line}>Mobile: {order.vendor_mobile}{order.vendor_email ? `  |  ${order.vendor_email}` : ''}</Text>
-              <Text style={s.line}><Text style={s.bold}>GSTIN: </Text>{order.vendor_gstin || 'Unregistered / Exempted'}</Text>
+              {order.vendor_gstin && (
+                <Text style={s.line}><Text style={s.bold}>GSTIN: </Text>{order.vendor_gstin || 'Unregistered / Exempted'}</Text>
+
+              )}
+              {order.vendor_aadhar && (
+                <Text style={s.line}><Text style={s.bold}>Aadhaar: </Text>{order.vendor_aadhar || 'Unregistered / Exempted'}</Text>
+
+              )}
+
               <Text style={s.line}>
                 <Text style={s.bold}>Billing Address: </Text>
                 {order.vendor_billing_address}, {order.vendor_city}, {order.vendor_state}
