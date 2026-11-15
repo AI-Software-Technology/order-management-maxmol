@@ -321,6 +321,9 @@ export interface Order {
   tax_regime?: "CGST_SGST" | "IGST" | "NONE" | string;
   subtotal: number;
   discount_amount: number;
+  discount_type?: 'NONE' | 'PERCENT' | 'FLAT' | string;
+  discount_value?: number;
+  gross_amount?: number;
   tax_rate: number;
   tax_amount: number;
   grand_total: number;

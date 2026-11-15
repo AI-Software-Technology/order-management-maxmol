@@ -310,6 +310,18 @@ export const OrderSlipPdf: React.FC<{ order: Order; items: OrderItem[]; assets: 
             )}
 
             <View style={s.sumBox}>
+              {Number(order.discount_amount || 0) > 0 && (
+                <>
+                  <View style={s.kv}>
+                    <Text>Items Total</Text>
+                    <Text>₹{money(Number(order.gross_amount) || Number(order.grand_total) + Number(order.discount_amount))}</Text>
+                  </View>
+                  <View style={s.kv}>
+                    <Text>Discount{order.discount_type === 'PERCENT' ? ` (${order.discount_value}%)` : ''}</Text>
+                    <Text>- ₹{money(order.discount_amount)}</Text>
+                  </View>
+                </>
+              )}
               <View style={s.kv}>
                 <Text>{isNonGst ? 'Subtotal' : 'Taxable Value (Excl. GST)'}</Text>
                 <Text style={s.bold}>₹{money(order.subtotal)}</Text>

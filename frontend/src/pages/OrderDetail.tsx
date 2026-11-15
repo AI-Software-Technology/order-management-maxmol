@@ -991,6 +991,24 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                       <p className="font-bold uppercase text-[11px] tracking-wide text-slate-500 mb-2">
                         Commercial & Tax Breakdown
                       </p>
+                      {Number(order.discount_amount || 0) > 0 && (
+                        <>
+                          <div className="flex justify-between text-slate-600">
+                            <span>Items Total:</span>
+                            <span className="font-mono font-semibold text-slate-800">
+                              ₹{(Number(order.gross_amount) || Number(order.grand_total) + Number(order.discount_amount)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-emerald-700">
+                            <span>
+                              Discount{order.discount_type === "PERCENT" ? ` (${order.discount_value}%)` : ""}:
+                            </span>
+                            <span className="font-mono font-semibold">
+                              − ₹{Number(order.discount_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between text-slate-600">
                         <span>
                           {isNonGst ? "Subtotal:" : "Subtotal (Excl. GST):"}

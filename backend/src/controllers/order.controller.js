@@ -18,19 +18,34 @@ const findOrder = (idParam) => {
 };
 
 // GST is inclusive in the entered selling rate ( reverse 18% )
-function computeTotals(items, taxType) {
-  let grandTotal = 0;
+// Discount applied on gross (incl. GST) total -> grand total -> reverse GST
+function computeTotals(items, taxType, discountType = 'NONE', discountValue = 0) {
+  let gross = 0;
   for (const it of items) {
     if (!it.product_id || Number(it.quantity) <= 0 || Number(it.rate) <= 0 || isNaN(Number(it.quantity)) || isNaN(Number(it.rate))) {
       return { error: 'All product rows must have valid product, quantity > 0, and rate > 0' };
     }
-    grandTotal += round2(Number(it.quantity) * Number(it.rate));
+    gross += round2(Number(it.quantity) * Number(it.rate));
   }
-  grandTotal = round2(grandTotal);
+  gross = round2(gross);
+
+  const dType = ['PERCENT', 'FLAT'].includes(String(discountType)) ? String(discountType) : 'NONE';
+  const dValue = Number(discountValue) || 0;
+  if (dType !== 'NONE') {
+    if (dValue < 0) return { error: 'Discount cannot be negative' };
+    if (dType === 'PERCENT' && dValue > 100) return { error: 'Discount percentage cannot exceed 100%' };
+    if (dType === 'FLAT' && dValue > gross) return { error: 'Discount amount cannot exceed order total' };
+  }
+  const discountAmount = dType === 'PERCENT' ? round2((gross * dValue) / 100) : dType === 'FLAT' ? round2(dValue) : 0;
+  const grandTotal = round2(gross - discountAmount);
 
   const isNonGst = taxType === 'NON_GST';
   const subtotal = isNonGst ? grandTotal : round2(grandTotal / 1.18);
   return {
+    grossAmount: gross,
+    discountType: discountAmount > 0 ? dType : 'NONE',
+    discountValue: discountAmount > 0 ? dValue : 0,
+    discountAmount,
     grandTotal,
     isNonGst,
     subtotal,
@@ -342,6 +357,7 @@ exports.create = async (req, res) => {
     company_id, vendor_id, items, transportName, transportAddress, booking_station, transport_contact_number,
     required_delivery_date, delivery_address, delivery_contact_person, delivery_contact_number,
     special_instructions, notes, payment_terms, tax_type = 'GST_18', use_credit = false,
+    discount_type = 'NONE', discount_value = 0,
   } = req.body;
 
   if (!company_id || !vendor_id || !items || !Array.isArray(items) || items.length === 0) {
@@ -361,7 +377,7 @@ exports.create = async (req, res) => {
   }
 
   // Estimated / Grand Total = SUM(Quantity * manually entered selling rate)
-  const totals = computeTotals(items, tax_type);
+  const totals = computeTotals(items, tax_type, discount_type, discount_value);
   if (totals.error) return res.status(400).json({ error: totals.error });
 
   const products = await Product.byIds(items.map((it) => toId(it.product_id)), 'id name sku unit');
@@ -393,7 +409,10 @@ exports.create = async (req, res) => {
     payment_terms: payment_terms || 'Advance',
     tax_type: totals.isNonGst ? 'NON_GST' : 'GST_18',
     subtotal: totals.subtotal,
-    discount_amount: 0,
+    gross_amount: totals.grossAmount,
+    discount_type: totals.discountType,
+    discount_value: totals.discountValue,
+    discount_amount: totals.discountAmount,
     tax_rate: totals.taxRate,
     tax_amount: totals.taxAmount,
     grand_total: totals.grandTotal,
@@ -482,8 +501,8 @@ exports.update = async (req, res) => {
   const {
     transportAddress, booking_station, transport_contact_number, company_id, vendor_id, items, tax_type = order.tax_type || 'GST_18', notes, delivery_address, transportName,
     delivery_contact_person, delivery_contact_number, required_delivery_date, special_instructions, payment_terms,
+    discount_type = order.discount_type || 'NONE', discount_value = order.discount_value || 0,
   } = req.body;
-  console.log(req.body)
 
   const targetCompanyId = company_id ? Number(company_id) : order.company_id;
   const targetVendorId = vendor_id ? Number(vendor_id) : order.vendor_id;
@@ -498,7 +517,7 @@ exports.update = async (req, res) => {
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'At least one product item is required.' });
   }
-  const totals = computeTotals(items, tax_type);
+  const totals = computeTotals(items, tax_type, discount_type, discount_value);
   if (totals.error) return res.status(400).json({ error: totals.error });
 
   // pending = grand total - verified received
@@ -519,6 +538,10 @@ exports.update = async (req, res) => {
         vendor_id: targetVendorId,
         tax_type: totals.isNonGst ? 'NON_GST' : 'GST_18',
         subtotal: totals.subtotal,
+        gross_amount: totals.grossAmount,
+        discount_type: totals.discountType,
+        discount_value: totals.discountValue,
+        discount_amount: totals.discountAmount,
         tax_rate: totals.taxRate,
         tax_amount: totals.taxAmount,
         grand_total: totals.grandTotal,

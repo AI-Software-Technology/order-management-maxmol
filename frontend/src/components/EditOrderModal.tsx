@@ -57,6 +57,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
   const [taxType, setTaxType] = useState<'GST_18' | 'NON_GST'>('GST_18');
   const [productRows, setProductRows] = useState<EditProductRow[]>([]);
+  const [discountType, setDiscountType] = useState<'NONE' | 'PERCENT' | 'FLAT'>('NONE');
+  const [discountValue, setDiscountValue] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [contactPerson, setContactPerson] = useState<string>('');
   const [contactNumber, setContactNumber] = useState<string>('');
@@ -119,6 +121,21 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           setSelectedCompanyId(ord.company_id);
           setSelectedVendorId(ord.vendor_id);
           setTaxType((ord.tax_type as 'GST_18' | 'NON_GST') || 'GST_18');
+          {
+            const dt = String(ord.discount_type || '').toUpperCase();
+            const damt = Number(ord.discount_amount || 0);
+            if (dt === 'PERCENT' || dt === 'FLAT') {
+              setDiscountType(dt);
+              setDiscountValue(String(ord.discount_value ?? ''));
+            } else if (damt > 0) {
+              // legacy order: only amount stored
+              setDiscountType('FLAT');
+              setDiscountValue(String(damt));
+            } else {
+              setDiscountType('NONE');
+              setDiscountValue('');
+            }
+          }
           setDeliveryAddress(ord.delivery_address || '');
           setContactPerson(ord.delivery_contact_person || ord.vendor_contact || '');
           setContactNumber(ord.delivery_contact_number || ord.vendor_mobile || '');
@@ -166,7 +183,16 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const isDeliveredBlocked = isDelivered && !canEditDelivered;
 
   // Live calculations
-  const grandTotal = Math.round(productRows.reduce((acc, r) => acc + (r.line_amount || 0), 0) * 100) / 100;
+  const grossTotal = Math.round(productRows.reduce((acc, r) => acc + (r.line_amount || 0), 0) * 100) / 100;
+  const discountNum = discountType === 'NONE' ? 0 : Math.max(0, Number(discountValue) || 0);
+  const discountError =
+    discountType === 'PERCENT' && discountNum > 100 ? 'Max 100%'
+      : discountType === 'FLAT' && discountNum > grossTotal ? 'Exceeds total'
+        : '';
+  const discountAmount = discountError ? 0
+    : discountType === 'PERCENT' ? Math.round(grossTotal * discountNum) / 100
+      : discountType === 'FLAT' ? Math.round(discountNum * 100) / 100 : 0;
+  const grandTotal = Math.round((grossTotal - discountAmount) * 100) / 100;
   const isNonGst = taxType === 'NON_GST';
   const subtotal = isNonGst ? grandTotal : Math.round((grandTotal / 1.18) * 100) / 100;
   const taxAmount = isNonGst ? 0 : Math.round((grandTotal - subtotal) * 100) / 100;
@@ -298,6 +324,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         company_id: selectedCompanyId,
         vendor_id: selectedVendorId,
         tax_type: taxType,
+        discount_type: discountAmount > 0 ? discountType : 'NONE',
+        discount_value: discountAmount > 0 ? discountNum : 0,
         delivery_address: deliveryAddress,
         delivery_contact_person: contactPerson,
         delivery_contact_number: contactNumber,
@@ -704,6 +732,46 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {/* Discount */}
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-bold text-slate-700">Discount:</span>
+                <div className="inline-flex bg-slate-200/60 rounded-lg p-0.5">
+                  {(['NONE', 'PERCENT', 'FLAT'] as const).map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => { setDiscountType(t); if (t === 'NONE') setDiscountValue(''); }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition ${discountType === t ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      {t === 'NONE' ? 'None' : t === 'PERCENT' ? '% Percent' : '₹ Flat'}
+                    </button>
+                  ))}
+                </div>
+                {discountType !== 'NONE' && (
+                  <input
+                    type="number"
+                    min={0}
+                    max={discountType === 'PERCENT' ? 100 : grossTotal}
+                    step="0.01"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    placeholder={discountType === 'PERCENT' ? 'e.g. 5' : 'e.g. 500'}
+                    className="w-28 px-2 py-1 border border-slate-300 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                )}
+                {discountAmount > 0 && (
+                  <span className="font-semibold text-emerald-700">− ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                )}
+                {discountError && <span className="text-rose-600 font-semibold">{discountError}</span>}
+              </div>
+                  {discountAmount > 0 && (
+                    <span className="text-xs text-slate-600">
+                      Items Total: <strong className="font-mono text-slate-900">₹{grossTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                    </span>
+                  )}
                 </div>
 
                 {/* Real-time Order Total & Tax Summary */}

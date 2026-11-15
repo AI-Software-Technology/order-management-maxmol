@@ -12,7 +12,7 @@ module.exports = defineModel('Order', 'orders', {
   transportAddress: str(),
   booking_station: str(),
   transport_contact_number: str(),
-  
+
   order_status: str('NEW'),
   production_status: str('NOT_ASSIGNED'),
   packing_status: str('PENDING_PACKING'),
@@ -24,6 +24,10 @@ module.exports = defineModel('Order', 'orders', {
 
   tax_type: str('GST_18'),
   subtotal: num(0),
+  // Discount on gross (GST-inclusive) item total. type: NONE | PERCENT | FLAT
+  gross_amount: num(0),
+  discount_type: str('NONE'),
+  discount_value: num(0),
   discount_amount: num(0),
   tax_rate: num(18),
   tax_amount: num(0),
